@@ -1271,6 +1271,7 @@ img { max-width: 100%; }
 
 .struk-header { text-align: center; margin-bottom: 0.75rem; }
 .struk-title { font-family: var(--font-display); font-size: 1.1rem; color: var(--brown-dark); }
+.struk-subtitle { font-family: var(--font-display); font-size: 0.8rem; color: var(--brown-dark); }
 .struk-sub { font-size: 0.75rem; color: var(--text-muted); }
 .struk-divider { border: none; border-top: 1px dashed var(--border); margin: 0.6rem 0; }
 .struk-row { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
