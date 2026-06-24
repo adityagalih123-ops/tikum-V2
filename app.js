@@ -21,6 +21,10 @@ let lastStruk     = null;      // last receipt data for printing
 let diskonAktif   = false;     // apakah diskon diaktifkan
 let diskonType    = 'nominal'; // 'nominal' | 'persen'
 
+// Pengeluaran state
+let hapusPengeluaranId = null; // id pengeluaran pending deletion
+let editPengeluaranId  = null; // id pengeluaran being edited
+
 // =============================================
 // INIT
 // =============================================
@@ -30,6 +34,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set default laporan date to today
   const inputDate = document.getElementById('laporan-tanggal');
   if (inputDate) inputDate.value = getTodayStr();
+
+  // Set default pengeluaran form date to today
+  const pTanggal = document.getElementById('p-tanggal');
+  if (pTanggal) pTanggal.value = getTodayStr();
+
+  // Set default pengeluaran filter to this month
+  const today = getTodayStr();
+  const firstOfMonth = today.substring(0, 7) + '-01';
+  const filterAwal  = document.getElementById('filter-p-awal');
+  const filterAkhir = document.getElementById('filter-p-akhir');
+  if (filterAwal)  filterAwal.value  = firstOfMonth;
+  if (filterAkhir) filterAkhir.value = today;
 
   // Auth state listener
   auth.onAuthStateChanged((user) => {
@@ -141,14 +157,15 @@ function navigateTo(page, linkEl) {
   if (linkEl) linkEl.classList.add('active');
 
   // Update topbar title
-  const titles = { dashboard: 'Dashboard', kasir: 'Kasir', produk: 'Master Produk', laporan: 'Laporan Harian' };
+  const titles = { dashboard: 'Dashboard', kasir: 'Kasir', produk: 'Master Produk', laporan: 'Laporan Harian', pengeluaran: 'Belanja & Pengeluaran' };
   document.getElementById('topbar-title').textContent = titles[page] || page;
 
   // Trigger page-specific load
-  if (page === 'dashboard') loadDashboard();
-  if (page === 'kasir')     renderProdukKasir();
-  if (page === 'produk')    renderTabelProduk();
-  if (page === 'laporan')   loadLaporan();
+  if (page === 'dashboard')   loadDashboard();
+  if (page === 'kasir')       renderProdukKasir();
+  if (page === 'produk')      renderTabelProduk();
+  if (page === 'laporan')     loadLaporan();
+  if (page === 'pengeluaran') loadPengeluaran();
 
   closeSidebar();
 }
@@ -258,6 +275,12 @@ async function loadDashboard() {
   const startDay  = firebase.firestore.Timestamp.fromDate(getStartOfDay(today));
   const endDay    = firebase.firestore.Timestamp.fromDate(getEndOfDay(today));
 
+  // Set LKH date label
+  const lkhDate = document.getElementById('lkh-date');
+  if (lkhDate) {
+    lkhDate.textContent = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  }
+
   try {
     const snap = await db.collection('transactions')
       .where('createdAt', '>=', startDay)
@@ -267,10 +290,21 @@ async function loadDashboard() {
 
     const transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // Omzet
-    const omzet = transactions.reduce((s, t) => s + (t.total || 0), 0);
-    document.getElementById('stat-omzet').textContent  = formatRp(omzet);
-    document.getElementById('stat-trx').textContent    = transactions.length;
+    // Omzet (gunakan grandTotal agar konsisten dengan fitur diskon)
+    const omzetKotor  = transactions.reduce((s, t) => s + (t.subtotal || t.total || 0), 0);
+    const totalDiskon = transactions.reduce((s, t) => s + (t.discountAmount || 0), 0);
+    const omzetBersih = transactions.reduce((s, t) => s + (t.grandTotal || t.total || 0), 0);
+
+    document.getElementById('stat-omzet').textContent = formatRp(omzetBersih);
+    document.getElementById('stat-trx').textContent   = transactions.length;
+
+    // LKH — penjualan
+    const lkhKotor  = document.getElementById('lkh-omzet-kotor');
+    const lkhDiskon = document.getElementById('lkh-total-diskon');
+    const lkhBersih = document.getElementById('lkh-omzet-bersih');
+    if (lkhKotor)  lkhKotor.textContent  = formatRp(omzetKotor);
+    if (lkhDiskon) lkhDiskon.textContent = formatRp(totalDiskon);
+    if (lkhBersih) lkhBersih.textContent = formatRp(omzetBersih);
 
     // Tabel transaksi terbaru (5 terakhir)
     const tbody = document.getElementById('tabel-trx-terbaru');
@@ -282,7 +316,7 @@ async function loadDashboard() {
           <td><code style="font-size:0.78rem;">${t.noTransaksi || '–'}</code></td>
           <td>${formatTime(t.createdAt)}</td>
           <td><span class="badge badge-${metodeBadge(t.metode)}">${capitalize(t.metode || '–')}</span></td>
-          <td style="font-weight:700;color:var(--gold)">${formatRp(t.total)}</td>
+          <td style="font-weight:700;color:var(--gold)">${formatRp(t.grandTotal || t.total)}</td>
         </tr>
       `).join('');
     }
@@ -290,9 +324,83 @@ async function loadDashboard() {
     // Top produk dari transaction_details
     await loadTopProduk(today);
 
+    // Load pengeluaran hari ini & bulan ini untuk dashboard
+    await loadDashboardPengeluaran(today, omzetBersih);
+
   } catch (e) {
     console.error('Dashboard error:', e);
     showToast('Gagal memuat dashboard', 'error');
+  }
+}
+
+async function loadDashboardPengeluaran(today, omzetBersih) {
+  // Pengeluaran hari ini
+  const startDay = firebase.firestore.Timestamp.fromDate(getStartOfDay(today));
+  const endDay   = firebase.firestore.Timestamp.fromDate(getEndOfDay(today));
+
+  // Pengeluaran bulan ini
+  const firstOfMonth = today.substring(0, 7) + '-01';
+  const startBulan   = firebase.firestore.Timestamp.fromDate(getStartOfDay(firstOfMonth));
+
+  try {
+    // Hari ini
+    const snapHari = await db.collection('expenses')
+      .where('createdAt', '>=', startDay)
+      .where('createdAt', '<=', endDay)
+      .get();
+    const totalHari = snapHari.docs.reduce((s, d) => s + (d.data().totalPrice || 0), 0);
+
+    // Bulan ini
+    const snapBulan = await db.collection('expenses')
+      .where('createdAt', '>=', startBulan)
+      .where('createdAt', '<=', endDay)
+      .get();
+    const totalBulan = snapBulan.docs.reduce((s, d) => s + (d.data().totalPrice || 0), 0);
+
+    // Update stat cards
+    const elHari  = document.getElementById('stat-pengeluaran-hari');
+    const elBulan = document.getElementById('stat-pengeluaran-bulan');
+    if (elHari)  elHari.textContent  = formatRp(totalHari);
+    if (elBulan) elBulan.textContent = formatRp(totalBulan);
+
+    // LKH — pengeluaran & saldo
+    const lkhPengeluaran = document.getElementById('lkh-total-pengeluaran');
+    const lkhSaldo       = document.getElementById('lkh-saldo-kas');
+    if (lkhPengeluaran) lkhPengeluaran.textContent = formatRp(totalHari);
+    if (lkhSaldo) {
+      const saldo = omzetBersih - totalHari;
+      lkhSaldo.textContent = formatRp(saldo);
+      lkhSaldo.style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    // Pengeluaran per kategori hari ini
+    const katMap = {};
+    snapHari.docs.forEach(d => {
+      const kat = d.data().category || 'Lainnya';
+      katMap[kat] = (katMap[kat] || 0) + (d.data().totalPrice || 0);
+    });
+    const sortedKat = Object.entries(katMap).sort((a, b) => b[1] - a[1]);
+    const listEl = document.getElementById('pengeluaran-per-kategori');
+    if (listEl) {
+      if (!sortedKat.length) {
+        listEl.innerHTML = '<div class="empty-state">Belum ada pengeluaran hari ini</div>';
+      } else {
+        const katEmoji = {
+          'Bahan Makanan': '🍚', 'Bahan Minuman': '🥤', 'Bahan Gorengan': '🍟',
+          'Alat & Operasional': '🔧', 'Asset': '📦'
+        };
+        listEl.innerHTML = sortedKat.map(([kat, total]) => `
+          <div class="top-produk-item">
+            <div class="top-rank" style="font-size:1rem;width:1.8rem;height:1.8rem;">${katEmoji[kat] || '🛒'}</div>
+            <div class="top-produk-name">${kat}</div>
+            <div class="top-produk-qty" style="background:var(--danger);color:#fff">${formatRp(total)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+  } catch (e) {
+    console.error('Dashboard pengeluaran error:', e);
   }
 }
 
@@ -1073,6 +1181,229 @@ async function lihatDetailTrx(trxId, noTransaksi) {
     `;
   } catch (e) {
     contentEl.innerHTML = `<p style="color:var(--danger)">Gagal memuat detail: ${e.message}</p>`;
+  }
+}
+
+// =============================================
+// BELANJA & PENGELUARAN
+// =============================================
+
+function hitungTotalPengeluaran() {
+  const qty   = parseFloat(document.getElementById('p-qty')?.value || 0) || 0;
+  const harga = parseFloat(document.getElementById('p-harga-satuan')?.value || 0) || 0;
+  const total = Math.round(qty * harga);
+  const el    = document.getElementById('p-total-display');
+  const inp   = document.getElementById('p-total-harga');
+  if (el)  el.textContent = formatRp(total);
+  if (inp) inp.value = total;
+}
+
+async function simpanPengeluaran() {
+  const tanggal    = document.getElementById('p-tanggal')?.value;
+  const kategori   = document.getElementById('p-kategori')?.value;
+  const item       = document.getElementById('p-item')?.value.trim();
+  const qty        = parseFloat(document.getElementById('p-qty')?.value || 0);
+  const satuan     = document.getElementById('p-satuan')?.value;
+  const hargaSat   = parseFloat(document.getElementById('p-harga-satuan')?.value || 0);
+  const totalHarga = Math.round(qty * hargaSat);
+  const keterangan = document.getElementById('p-keterangan')?.value.trim();
+
+  if (!tanggal || !kategori || !item || qty <= 0 || hargaSat <= 0) {
+    showToast('Tanggal, Kategori, Item, Qty, dan Harga Satuan wajib diisi!', 'error');
+    return;
+  }
+
+  const btnText = document.getElementById('btn-sp-text');
+  const btnSpin = document.getElementById('btn-sp-spinner');
+  btnText.classList.add('hidden');
+  btnSpin.classList.remove('hidden');
+
+  const data = {
+    transactionDate: tanggal,
+    category:   kategori,
+    item,
+    qty,
+    unit:       satuan,
+    unitPrice:  hargaSat,
+    totalPrice: totalHarga,
+    notes:      keterangan,
+    updatedAt:  firebase.firestore.Timestamp.now(),
+  };
+
+  try {
+    if (editPengeluaranId) {
+      await db.collection('expenses').doc(editPengeluaranId).update(data);
+      showToast('Pengeluaran berhasil diperbarui!', 'success');
+      batalEditPengeluaran();
+    } else {
+      data.createdAt = firebase.firestore.Timestamp.now();
+      await db.collection('expenses').add(data);
+      showToast('Pengeluaran berhasil disimpan!', 'success');
+      resetFormPengeluaran();
+    }
+    loadPengeluaran();
+    loadDashboard(); // refresh dashboard stats
+  } catch (e) {
+    showToast('Gagal menyimpan: ' + e.message, 'error');
+  } finally {
+    btnText.classList.remove('hidden');
+    btnSpin.classList.add('hidden');
+  }
+}
+
+function resetFormPengeluaran() {
+  document.getElementById('pengeluaran-edit-id').value = '';
+  document.getElementById('p-tanggal').value           = getTodayStr();
+  document.getElementById('p-kategori').value          = '';
+  document.getElementById('p-item').value              = '';
+  document.getElementById('p-qty').value               = '';
+  document.getElementById('p-satuan').value            = 'Kg';
+  document.getElementById('p-harga-satuan').value      = '';
+  document.getElementById('p-total-harga').value       = '0';
+  document.getElementById('p-keterangan').value        = '';
+  const el = document.getElementById('p-total-display');
+  if (el) el.textContent = 'Rp 0';
+}
+
+function batalEditPengeluaran() {
+  editPengeluaranId = null;
+  document.getElementById('form-pengeluaran-title').textContent = '➕ Tambah Pengeluaran';
+  document.getElementById('btn-simpan-pengeluaran').querySelector('#btn-sp-text').textContent = '💾 Simpan Pengeluaran';
+  document.getElementById('btn-batal-edit-pengeluaran').classList.add('hidden');
+  resetFormPengeluaran();
+}
+
+function openEditPengeluaran(id) {
+  // Ambil dari tabel yang sudah di-cache
+  const row = document.querySelector(`[data-pengeluaran-id="${id}"]`);
+  if (!row) { loadPengeluaranById(id); return; }
+}
+
+async function loadPengeluaranById(id) {
+  try {
+    const doc = await db.collection('expenses').doc(id).get();
+    if (!doc.exists) return;
+    isiFormEditPengeluaran(id, doc.data());
+  } catch (e) {
+    showToast('Gagal memuat data: ' + e.message, 'error');
+  }
+}
+
+function isiFormEditPengeluaran(id, data) {
+  editPengeluaranId = id;
+  document.getElementById('pengeluaran-edit-id').value     = id;
+  document.getElementById('p-tanggal').value               = data.transactionDate || getTodayStr();
+  document.getElementById('p-kategori').value              = data.category || '';
+  document.getElementById('p-item').value                  = data.item || '';
+  document.getElementById('p-qty').value                   = data.qty || '';
+  document.getElementById('p-satuan').value                = data.unit || 'Pcs';
+  document.getElementById('p-harga-satuan').value          = data.unitPrice || '';
+  document.getElementById('p-keterangan').value            = data.notes || '';
+  hitungTotalPengeluaran();
+
+  document.getElementById('form-pengeluaran-title').textContent = '✏️ Edit Pengeluaran';
+  document.getElementById('btn-simpan-pengeluaran').querySelector('#btn-sp-text').textContent = '💾 Update Pengeluaran';
+  document.getElementById('btn-batal-edit-pengeluaran').classList.remove('hidden');
+
+  // Scroll ke form
+  document.getElementById('form-pengeluaran-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openModalHapusPengeluaran(id, nama) {
+  hapusPengeluaranId = id;
+  document.getElementById('hapus-pengeluaran-nama').textContent = nama;
+  openModal('modal-hapus-pengeluaran');
+}
+
+async function confirmHapusPengeluaran() {
+  if (!hapusPengeluaranId) return;
+  const btn = document.getElementById('btn-hapus-pengeluaran-confirm');
+  btn.disabled = true;
+  btn.textContent = 'Menghapus...';
+
+  try {
+    await db.collection('expenses').doc(hapusPengeluaranId).delete();
+    showToast('Pengeluaran berhasil dihapus', 'success');
+    closeModal('modal-hapus-pengeluaran');
+    loadPengeluaran();
+    loadDashboard();
+  } catch (e) {
+    showToast('Gagal menghapus: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Hapus';
+    hapusPengeluaranId = null;
+  }
+}
+
+async function loadPengeluaran() {
+  const dateAwal   = document.getElementById('filter-p-awal')?.value;
+  const dateAkhir  = document.getElementById('filter-p-akhir')?.value;
+  const filterKatP = document.getElementById('filter-p-kategori')?.value;
+  const tbody      = document.getElementById('tabel-pengeluaran');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Memuat data...</td></tr>';
+
+  try {
+    let query = db.collection('expenses').orderBy('transactionDate', 'desc').orderBy('createdAt', 'desc');
+
+    if (dateAwal)  query = query.where('transactionDate', '>=', dateAwal);
+    if (dateAkhir) query = query.where('transactionDate', '<=', dateAkhir);
+
+    const snap = await query.get();
+    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Filter kategori di client-side (hindari composite index)
+    if (filterKatP) {
+      list = list.filter(e => e.category === filterKatP);
+    }
+
+    // Total terfilter
+    const totalFilter = list.reduce((s, e) => s + (e.totalPrice || 0), 0);
+    const elTotal = document.getElementById('p-total-terfilter');
+    if (elTotal) elTotal.textContent = formatRp(totalFilter);
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Tidak ada data pengeluaran pada periode ini</td></tr>';
+      return;
+    }
+
+    const katBadgeColor = {
+      'Bahan Makanan':    '#e67e22',
+      'Bahan Minuman':    '#2980b9',
+      'Bahan Gorengan':   '#8e44ad',
+      'Alat & Operasional': '#16a085',
+      'Asset':            '#c0392b',
+    };
+
+    tbody.innerHTML = list.map(e => {
+      const badgeColor = katBadgeColor[e.category] || '#7f8c8d';
+      const safeItem   = (e.item || '').replace(/'/g, "\\'");
+      return `
+        <tr data-pengeluaran-id="${e.id}">
+          <td style="white-space:nowrap">${e.transactionDate || '–'}</td>
+          <td><span class="badge" style="background:${badgeColor}20;color:${badgeColor};border:1px solid ${badgeColor}40">${e.category || '–'}</span></td>
+          <td style="font-weight:500">${e.item || '–'}</td>
+          <td>${e.qty ?? '–'}</td>
+          <td>${e.unit || '–'}</td>
+          <td>${formatRp(e.unitPrice)}</td>
+          <td style="font-weight:700;color:var(--danger)">${formatRp(e.totalPrice)}</td>
+          <td style="font-size:0.82rem;color:var(--text-muted)">${e.notes || '–'}</td>
+          <td>
+            <div class="tbl-actions">
+              <button class="btn-icon edit" onclick="loadPengeluaranById('${e.id}')" title="Edit">✏️</button>
+              <button class="btn-icon hapus" onclick="openModalHapusPengeluaran('${e.id}', '${safeItem}')" title="Hapus">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (e) {
+    console.error('Pengeluaran error:', e);
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Gagal memuat data</td></tr>';
+    showToast('Gagal memuat pengeluaran: ' + e.message, 'error');
   }
 }
 

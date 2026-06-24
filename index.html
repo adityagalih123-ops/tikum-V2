@@ -80,6 +80,10 @@
           <span class="nav-icon">📋</span>
           <span>Laporan Harian</span>
         </a>
+        <a href="#" class="nav-item" data-page="pengeluaran" onclick="navigateTo('pengeluaran', this)">
+          <span class="nav-icon">🛍️</span>
+          <span>Belanja & Pengeluaran</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -140,6 +144,50 @@
               <div class="stat-value" id="stat-produk">0</div>
             </div>
           </div>
+          <div class="stat-card stat-pengeluaran">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-info">
+              <div class="stat-label">Pengeluaran Hari Ini</div>
+              <div class="stat-value" id="stat-pengeluaran-hari">Rp 0</div>
+            </div>
+          </div>
+          <div class="stat-card stat-pengeluaran">
+            <div class="stat-icon">📅</div>
+            <div class="stat-info">
+              <div class="stat-label">Pengeluaran Bulan Ini</div>
+              <div class="stat-value" id="stat-pengeluaran-bulan">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laporan Keuangan Harian -->
+        <div class="laporan-keuangan-harian card">
+          <div class="card-header">
+            <h3>💹 Laporan Keuangan Hari Ini</h3>
+            <span class="lkh-date" id="lkh-date"></span>
+          </div>
+          <div class="lkh-grid">
+            <div class="lkh-item">
+              <span class="lkh-label">Omzet Kotor</span>
+              <span class="lkh-val" id="lkh-omzet-kotor">Rp 0</span>
+            </div>
+            <div class="lkh-item lkh-minus">
+              <span class="lkh-label">Total Diskon</span>
+              <span class="lkh-val" id="lkh-total-diskon">Rp 0</span>
+            </div>
+            <div class="lkh-item lkh-bersih">
+              <span class="lkh-label">Omzet Bersih</span>
+              <span class="lkh-val" id="lkh-omzet-bersih">Rp 0</span>
+            </div>
+            <div class="lkh-item lkh-minus">
+              <span class="lkh-label">Total Pengeluaran</span>
+              <span class="lkh-val" id="lkh-total-pengeluaran">Rp 0</span>
+            </div>
+            <div class="lkh-item lkh-saldo">
+              <span class="lkh-label">💵 Saldo Kas Hari Ini</span>
+              <span class="lkh-val" id="lkh-saldo-kas">Rp 0</span>
+            </div>
+          </div>
         </div>
 
         <div class="dashboard-bottom">
@@ -165,12 +213,23 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h3>Top 5 Produk Terlaris</h3>
+          <div class="dashboard-right-col">
+            <div class="card">
+              <div class="card-header">
+                <h3>Top 5 Produk Terlaris</h3>
+              </div>
+              <div id="top-produk-list" class="top-produk-list">
+                <div class="empty-state">Belum ada data</div>
+              </div>
             </div>
-            <div id="top-produk-list" class="top-produk-list">
-              <div class="empty-state">Belum ada data</div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>🛒 Pengeluaran per Kategori</h3>
+              </div>
+              <div id="pengeluaran-per-kategori" class="top-produk-list">
+                <div class="empty-state">Belum ada data hari ini</div>
+              </div>
             </div>
           </div>
         </div>
@@ -379,6 +438,135 @@
         </div>
       </section>
 
+      <!-- ===== PAGE: BELANJA & PENGELUARAN ===== -->
+      <section id="section-pengeluaran" class="content-section hidden">
+        <div class="section-header">
+          <h2>Belanja & Pengeluaran</h2>
+          <p>Catat dan kelola pengeluaran usaha</p>
+        </div>
+
+        <!-- Form Input -->
+        <div class="card pengeluaran-form-card">
+          <div class="card-header">
+            <h3 id="form-pengeluaran-title">➕ Tambah Pengeluaran</h3>
+            <button class="btn-danger-sm hidden" id="btn-batal-edit-pengeluaran" onclick="batalEditPengeluaran()">✕ Batal Edit</button>
+          </div>
+          <div class="pengeluaran-form-body">
+            <input type="hidden" id="pengeluaran-edit-id" />
+            <div class="pform-grid">
+              <div class="form-group">
+                <label>Tanggal Transaksi *</label>
+                <input type="date" id="p-tanggal" />
+              </div>
+              <div class="form-group">
+                <label>Kategori *</label>
+                <select id="p-kategori">
+                  <option value="">— Pilih Kategori —</option>
+                  <option value="Bahan Makanan">Bahan Makanan</option>
+                  <option value="Bahan Minuman">Bahan Minuman</option>
+                  <option value="Bahan Gorengan">Bahan Gorengan</option>
+                  <option value="Alat & Operasional">Alat &amp; Operasional</option>
+                  <option value="Asset">Asset</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Item / Nama Barang *</label>
+                <input type="text" id="p-item" placeholder="mis. Minyak Goreng, Gula" />
+              </div>
+              <div class="form-group pform-qty-wrap">
+                <label>Qty *</label>
+                <div class="pform-qty-row">
+                  <input type="number" id="p-qty" placeholder="0" min="0" step="0.01" oninput="hitungTotalPengeluaran()" />
+                  <select id="p-satuan">
+                    <option value="Kg">Kg</option>
+                    <option value="Gram">Gram</option>
+                    <option value="Liter">Liter</option>
+                    <option value="Ml">Ml</option>
+                    <option value="Pcs">Pcs</option>
+                    <option value="Box">Box</option>
+                    <option value="Pack">Pack</option>
+                    <option value="Botol">Botol</option>
+                    <option value="Tabung">Tabung</option>
+                    <option value="Unit">Unit</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Harga Satuan (Rp) *</label>
+                <input type="number" id="p-harga-satuan" placeholder="0" min="0" oninput="hitungTotalPengeluaran()" />
+              </div>
+              <div class="form-group">
+                <label>Total Harga</label>
+                <div class="p-total-display" id="p-total-display">Rp 0</div>
+                <input type="hidden" id="p-total-harga" value="0" />
+              </div>
+              <div class="form-group pform-full">
+                <label>Keterangan (opsional)</label>
+                <input type="text" id="p-keterangan" placeholder="Catatan tambahan..." />
+              </div>
+            </div>
+            <div class="pform-actions">
+              <button class="btn-primary" onclick="simpanPengeluaran()" id="btn-simpan-pengeluaran">
+                <span id="btn-sp-text">💾 Simpan Pengeluaran</span>
+                <span id="btn-sp-spinner" class="spinner hidden"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Tabel -->
+        <div class="card">
+          <div class="card-header pengeluaran-filter-header">
+            <div class="pengeluaran-filters">
+              <div class="form-group-inline">
+                <label>Dari</label>
+                <input type="date" id="filter-p-awal" onchange="loadPengeluaran()" />
+              </div>
+              <div class="form-group-inline">
+                <label>Sampai</label>
+                <input type="date" id="filter-p-akhir" onchange="loadPengeluaran()" />
+              </div>
+              <div class="form-group-inline">
+                <label>Kategori</label>
+                <select id="filter-p-kategori" onchange="loadPengeluaran()">
+                  <option value="">Semua Kategori</option>
+                  <option value="Bahan Makanan">Bahan Makanan</option>
+                  <option value="Bahan Minuman">Bahan Minuman</option>
+                  <option value="Bahan Gorengan">Bahan Gorengan</option>
+                  <option value="Alat & Operasional">Alat &amp; Operasional</option>
+                  <option value="Asset">Asset</option>
+                </select>
+              </div>
+            </div>
+            <div class="pengeluaran-total-filter">
+              <span class="mini-stat-label">Total Terfilter</span>
+              <span class="mini-stat-val pengeluaran-total-val" id="p-total-terfilter">Rp 0</span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Kategori</th>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Satuan</th>
+                  <th>Harga Satuan</th>
+                  <th>Total Harga</th>
+                  <th>Keterangan</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tabel-pengeluaran">
+                <tr><td colspan="9" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </div><!-- /main-content -->
   </div><!-- /page-app -->
 
@@ -485,6 +673,23 @@
       </div>
       <div class="modal-footer">
         <button class="btn-primary" onclick="closeModal('modal-detail-trx')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi Hapus Pengeluaran -->
+  <div id="modal-hapus-pengeluaran" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-hapus-pengeluaran')">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Hapus Pengeluaran</h3>
+        <button class="modal-close" onclick="closeModal('modal-hapus-pengeluaran')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Apakah Anda yakin ingin menghapus pengeluaran <strong id="hapus-pengeluaran-nama"></strong>? Tindakan ini tidak dapat dibatalkan.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-hapus-pengeluaran')">Batal</button>
+        <button class="btn-danger" onclick="confirmHapusPengeluaran()" id="btn-hapus-pengeluaran-confirm">Hapus</button>
       </div>
     </div>
   </div>
