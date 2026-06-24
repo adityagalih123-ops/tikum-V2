@@ -854,7 +854,9 @@ function showStruk(data) {
 
   document.getElementById('struk-content').innerHTML = `
     <div class="struk-header">
-      <div class="struk-title">☕ Angkringan POS</div>
+      <div class="struk-title">☕ TIKUM</div>
+      <div class="struk-subtitle">angkringan&coffe</div>
+      <div class="struk-double-line"></div>
       <div class="struk-sub">Terima kasih atas kunjungan Anda!</div>
       <div class="struk-sub">${data.waktu.toLocaleString('id-ID')}</div>
     </div>
