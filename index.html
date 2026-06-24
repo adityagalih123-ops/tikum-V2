@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Angkringan POS – Kasir Modern</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+
+  <!-- Firebase SDKs (compat version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <!-- ======================== LOGIN PAGE ======================== -->
+  <div id="page-login" class="page active">
+    <div class="login-bg">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="brand-icon">☕</div>
+          <h1 class="brand-title">Angkringan<span>POS</span></h1>
+          <p class="brand-sub">Sistem Kasir Modern</p>
+        </div>
+        <form id="form-login" class="login-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="email@angkringan.com" autocomplete="email" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="input-password-wrap">
+              <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+              <button type="button" class="btn-toggle-pw" onclick="togglePassword()" title="Tampilkan password">👁</button>
+            </div>
+          </div>
+          <div id="login-error" class="login-error hidden"></div>
+          <button type="submit" id="btn-login" class="btn-primary btn-full" onclick="doLogin()">
+            <span id="btn-login-text">Masuk</span>
+            <span id="btn-login-spinner" class="spinner hidden"></span>
+          </button>
+        </form>
+        <p class="login-footer">© 2025 Angkringan POS. Semua hak dilindungi.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== MAIN APP ======================== -->
+  <div id="page-app" class="page hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon-sm">☕</div>
+        <div>
+          <div class="sidebar-brand">AngkringanPOS</div>
+          <div class="sidebar-user" id="sidebar-user-email">–</div>
+        </div>
+        <button class="btn-sidebar-close" id="btn-sidebar-close" onclick="closeSidebar()">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Menu Utama</div>
+        <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard', this)">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-page="kasir" onclick="navigateTo('kasir', this)">
+          <span class="nav-icon">🛒</span>
+          <span>Kasir</span>
+        </a>
+        <a href="#" class="nav-item" data-page="produk" onclick="navigateTo('produk', this)">
+          <span class="nav-icon">📦</span>
+          <span>Master Produk</span>
+        </a>
+        <a href="#" class="nav-item" data-page="laporan" onclick="navigateTo('laporan', this)">
+          <span class="nav-icon">📋</span>
+          <span>Laporan Harian</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="doLogout()">
+          <span>🚪</span> Keluar
+        </button>
+      </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="btn-menu" id="btn-menu" onclick="openSidebar()">☰</button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-right">
+          <div class="topbar-date" id="topbar-date"></div>
+        </div>
+      </header>
+
+      <!-- ===== PAGE: DASHBOARD ===== -->
+      <section id="section-dashboard" class="content-section active">
+        <div class="section-header">
+          <h2>Dashboard</h2>
+          <p>Ringkasan performa hari ini</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card accent">
+            <div class="stat-icon">💰</div>
+            <div class="stat-info">
+              <div class="stat-label">Omzet Hari Ini</div>
+              <div class="stat-value" id="stat-omzet">Rp 0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🧾</div>
+            <div class="stat-info">
+              <div class="stat-label">Transaksi Hari Ini</div>
+              <div class="stat-value" id="stat-trx">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-info">
+              <div class="stat-label">Produk Terlaris</div>
+              <div class="stat-value" id="stat-terlaris">–</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+              <div class="stat-label">Total Produk</div>
+              <div class="stat-value" id="stat-produk">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-bottom">
+          <div class="card">
+            <div class="card-header">
+              <h3>Transaksi Terbaru</h3>
+              <button class="btn-sm" onclick="navigateTo('laporan', document.querySelector('[data-page=laporan]'))">Lihat Semua</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>No. Transaksi</th>
+                    <th>Waktu</th>
+                    <th>Pembayaran</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody id="tabel-trx-terbaru">
+                  <tr><td colspan="4" class="empty-state">Belum ada transaksi hari ini</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Top 5 Produk Terlaris</h3>
+            </div>
+            <div id="top-produk-list" class="top-produk-list">
+              <div class="empty-state">Belum ada data</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PAGE: KASIR ===== -->
+      <section id="section-kasir" class="content-section hidden">
+        <div class="section-header">
+          <h2>Kasir</h2>
+          <p>Proses transaksi penjualan</p>
+        </div>
+
+        <div class="kasir-layout">
+          <!-- Panel Kiri: Daftar Produk -->
+          <div class="kasir-produk">
+            <div class="kasir-search-wrap">
+              <input type="text" id="kasir-search" placeholder="🔍  Cari produk..." oninput="filterProdukKasir(this.value)" />
+            </div>
+            <div class="kategori-tabs" id="kategori-tabs">
+              <button class="tab-btn active" onclick="filterKategori('semua', this)">Semua</button>
+            </div>
+            <div class="produk-grid" id="kasir-produk-grid">
+              <!-- Produk cards rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Panel Kanan: Keranjang -->
+          <div class="kasir-keranjang">
+            <div class="keranjang-header">
+              <h3>🛒 Keranjang</h3>
+              <button class="btn-danger-sm" onclick="clearKeranjang()">Kosongkan</button>
+            </div>
+
+            <div class="keranjang-items" id="keranjang-items">
+              <div class="empty-keranjang" id="empty-keranjang">
+                <div style="font-size:2.5rem;">🛒</div>
+                <p>Keranjang masih kosong.<br/>Pilih produk untuk memulai.</p>
+              </div>
+            </div>
+
+            <div class="keranjang-footer" id="keranjang-footer">
+              <div class="total-row">
+                <span>Subtotal</span>
+                <span id="subtotal-text">Rp 0</span>
+              </div>
+
+              <!-- ===== DISKON SECTION ===== -->
+              <div class="diskon-section" id="diskon-section">
+                <div class="diskon-toggle-row">
+                  <label class="section-label" style="margin:0;">🏷️ Diskon</label>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="diskon-aktif" onchange="toggleDiskon(this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div id="diskon-fields" class="diskon-fields hidden">
+                  <div class="diskon-type-row">
+                    <button class="diskon-type-btn active" data-type="nominal" onclick="setDiskonType('nominal', this)">Rp Nominal</button>
+                    <button class="diskon-type-btn" data-type="persen" onclick="setDiskonType('persen', this)">% Persen</button>
+                  </div>
+                  <div class="diskon-input-wrap">
+                    <span class="diskon-prefix" id="diskon-prefix">Rp</span>
+                    <input type="number" id="diskon-nilai" placeholder="0" min="0" oninput="hitungTotal()" />
+                    <span class="diskon-suffix hidden" id="diskon-suffix">%</span>
+                  </div>
+                  <select id="diskon-alasan" onchange="hitungTotal()">
+                    <option value="">— Pilih Alasan Diskon —</option>
+                    <option value="Promo">Promo</option>
+                    <option value="Customer Loyal">Customer Loyal</option>
+                    <option value="Komplain">Komplain</option>
+                    <option value="Harga Khusus">Harga Khusus</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div class="total-row diskon-amount-row hidden" id="diskon-amount-row">
+                  <span id="diskon-label-text">Diskon</span>
+                  <span id="diskon-amount-text" class="diskon-amount-val">− Rp 0</span>
+                </div>
+              </div>
+              <!-- ===== END DISKON ===== -->
+
+              <div class="total-row total-main">
+                <span>Grand Total</span>
+                <span id="total-text">Rp 0</span>
+              </div>
+
+              <div class="pembayaran-section">
+                <label class="section-label">Metode Pembayaran</label>
+                <div class="payment-methods">
+                  <button class="pay-btn active" data-method="tunai" onclick="selectPayment('tunai', this)">💵 Tunai</button>
+                  <button class="pay-btn" data-method="qris" onclick="selectPayment('qris', this)">📱 QRIS</button>
+                  <button class="pay-btn" data-method="transfer" onclick="selectPayment('transfer', this)">🏦 Transfer</button>
+                </div>
+
+                <div id="tunai-section" class="tunai-section">
+                  <label>Uang Diterima</label>
+                  <input type="number" id="uang-diterima" placeholder="0" oninput="hitungKembalian()" />
+                  <div class="kembalian-row" id="kembalian-row">
+                    <span>Kembalian</span>
+                    <span id="kembalian-text" class="kembalian-value">Rp 0</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn-bayar" id="btn-bayar" onclick="prosesTransaksi()">
+                <span id="btn-bayar-text">💳 Bayar</span>
+                <span id="btn-bayar-spinner" class="spinner hidden"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PAGE: MASTER PRODUK ===== -->
+      <section id="section-produk" class="content-section hidden">
+        <div class="section-header">
+          <h2>Master Produk</h2>
+          <p>Kelola daftar produk angkringan</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="search-box">
+              <input type="text" id="produk-search" placeholder="🔍  Cari produk..." oninput="filterTabelProduk(this.value)" />
+            </div>
+            <button class="btn-primary" onclick="openModalProduk()">+ Tambah Produk</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nama Produk</th>
+                  <th>Kategori</th>
+                  <th>Harga</th>
+                  <th>Stok</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tabel-produk">
+                <tr><td colspan="7" class="empty-state">Memuat produk...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PAGE: LAPORAN HARIAN ===== -->
+      <section id="section-laporan" class="content-section hidden">
+        <div class="section-header">
+          <h2>Laporan Penjualan Harian</h2>
+          <p>Riwayat transaksi berdasarkan tanggal</p>
+        </div>
+
+        <div class="laporan-filter card">
+          <div class="filter-row">
+            <div class="form-group-inline">
+              <label>Tanggal</label>
+              <input type="date" id="laporan-tanggal" onchange="loadLaporan()" />
+            </div>
+            <div class="laporan-stats-inline">
+              <div class="mini-stat">
+                <span class="mini-stat-label">Total Transaksi</span>
+                <span class="mini-stat-val" id="laporan-jml-trx">0</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat-label">Omzet Kotor</span>
+                <span class="mini-stat-val" id="laporan-omzet-kotor">Rp 0</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat-label">Total Diskon</span>
+                <span class="mini-stat-val diskon-color" id="laporan-total-diskon">Rp 0</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat-label">Omzet Bersih</span>
+                <span class="mini-stat-val omzet-bersih-color" id="laporan-omzet">Rp 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>No. Transaksi</th>
+                  <th>Waktu</th>
+                  <th>Items</th>
+                  <th>Pembayaran</th>
+                  <th>Subtotal</th>
+                  <th>Diskon</th>
+                  <th>Grand Total</th>
+                  <th>Detail</th>
+                </tr>
+              </thead>
+              <tbody id="tabel-laporan">
+                <tr><td colspan="8" class="empty-state">Pilih tanggal untuk melihat laporan</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /main-content -->
+  </div><!-- /page-app -->
+
+
+  <!-- ============================= MODALS ============================= -->
+
+  <!-- Modal Tambah/Edit Produk -->
+  <div id="modal-produk" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-produk')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-produk-title">Tambah Produk</h3>
+        <button class="modal-close" onclick="closeModal('modal-produk')">✕</button>
+      </div>
+      <form id="form-produk" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="produk-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama Produk *</label>
+            <input type="text" id="produk-nama" placeholder="mis. Nasi Kucing Ayam" required />
+          </div>
+          <div class="form-group">
+            <label>Kategori *</label>
+            <input type="text" id="produk-kategori" placeholder="mis. Makanan, Minuman" list="kategori-list" required />
+            <datalist id="kategori-list"></datalist>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Harga (Rp) *</label>
+            <input type="number" id="produk-harga" placeholder="0" min="0" required />
+          </div>
+          <div class="form-group">
+            <label>Stok</label>
+            <input type="number" id="produk-stok" placeholder="0" min="0" value="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Deskripsi</label>
+          <textarea id="produk-deskripsi" placeholder="Deskripsi singkat produk..." rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="produk-status">
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
+        <button class="btn-primary" onclick="simpanProduk()" id="btn-simpan-produk">
+          <span id="btn-simpan-text">Simpan</span>
+          <span id="btn-simpan-spinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi Hapus -->
+  <div id="modal-hapus" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-hapus')">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Hapus Produk</h3>
+        <button class="modal-close" onclick="closeModal('modal-hapus')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Apakah Anda yakin ingin menghapus produk <strong id="hapus-produk-nama"></strong>? Tindakan ini tidak dapat dibatalkan.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-hapus')">Batal</button>
+        <button class="btn-danger" onclick="confirmHapusProduk()" id="btn-hapus-confirm">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Struk Transaksi -->
+  <div id="modal-struk" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-struk')">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>✅ Transaksi Berhasil</h3>
+        <button class="modal-close" onclick="closeModal('modal-struk'); resetKasir()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="struk" id="struk-content">
+          <!-- Diisi oleh JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="printStruk()">🖨 Cetak</button>
+        <button class="btn-primary" onclick="closeModal('modal-struk'); resetKasir()">Transaksi Baru</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail Transaksi Laporan -->
+  <div id="modal-detail-trx" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-detail-trx')">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Detail Transaksi</h3>
+        <button class="modal-close" onclick="closeModal('modal-detail-trx')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="detail-trx-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeModal('modal-detail-trx')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
