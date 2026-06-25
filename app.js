@@ -87,6 +87,7 @@ let diskonAktif        = false;
 let diskonType         = 'nominal';
 let hapusPengeluaranId = null;
 let editPengeluaranId  = null;
+let unsubscribeProduk = null;
 
 // Shift state
 let shiftData          = null;  // data shift aktif saat ini (null = tidak ada)
@@ -129,10 +130,17 @@ document.addEventListener('DOMContentLoaded', () => {
       loadProdukRealtme();
       checkShiftAktif();
     } else {
-      currentUser = null;
-      shiftData   = null;
-      showLogin();
-    }
+
+  if (unsubscribeProduk) {
+    unsubscribeProduk();
+    unsubscribeProduk = null;
+  }
+
+  currentUser = null;
+  shiftData = null;
+
+  showLogin();
+}
   });
 });
 
@@ -284,7 +292,43 @@ async function generateNoTransaksi() {
 // Stok hanya sebagai informasi, TIDAK berkurang saat transaksi
 // =============================================
 function loadProdukRealtme() {
-  db.collection('products').orderBy('nama').onSnapshot((snap) => {
+
+  if (unsubscribeProduk) {
+    unsubscribeProduk();
+  }
+
+  unsubscribeProduk = db.collection('products')
+    .orderBy('nama')
+    .onSnapshot((snap) => {
+
+      allProduk = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      }));
+
+      renderProdukKasir();
+      renderTabelProduk();
+      updateKategoriTabs();
+      updateKategoriDatalist();
+
+      _setTxt(
+        'stat-produk',
+        allProduk.filter(p => p.status === 'aktif').length
+      );
+
+    }, (err) => {
+
+      console.error('Produk error:', err);
+
+      if (err.code !== 'permission-denied') {
+        showToast(
+          'Gagal memuat produk: ' + err.message,
+          'error'
+        );
+      }
+
+    });
+}
     allProduk = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProdukKasir();
     renderTabelProduk();
