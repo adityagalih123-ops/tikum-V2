@@ -121,7 +121,831 @@ document.addEventListener('DOMContentLoaded', () => {
   _setVal('ls-awal',  firstOfMonth);
   _setVal('ls-akhir', today);
 
-  auth.onAuthStateChanged((user) => {
+  hasil ketika mencoba login:ci
+hasilnya begini ketika pakau firebase login : ci
+yang dihasilkan claude
+ini kah?
+ini pasca masuk ke localhost:3000
+sudah di akomodir untuk perubahan scriptnya, cuman tidak muncul file, dan ketika saya mau copt paste nda bisa
+ketika masuk menu ini ada notif gagal memuat pengeluaran
+ini ketika masuk menu belanja dan pengeluaran
+erornya gini terus
+
+Oke, kita lanjut satu langkah saja dulu supaya tidak bingung.
+
+Dari potongan kode yang Anda kirim:
+
+async function doLogin() {
+  const email    = _el('login-email').value.trim();
+  const password = _el('login-password').value;
+  const errEl    = _el('login-error');
+  errEl.classList.add('hidden');
+
+  if (!email || !password) {
+    showError(errEl, 'Email dan password wajib diisi.');
+    return;
+  }
+
+  _el('btn-login-text').classList.add('hidden');
+  _el('btn-login-spinner').classList.remove('hidden');
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    showError(errEl, mapAuthError(e.code));
+  } finally {
+    _el('btn-login-text').classList.remove('hidden');
+    _el('btn-login-spinner').classList.add('hidden');
+  }
+}
+
+dan
+
+function _el(id) {
+  return document.getElementById(id);
+}
+
+Kode ini tidak terlihat bermasalah.
+
+Karena tombol login diklik tetapi tidak ada reaksi sama sekali, kemungkinan besar masalahnya ada pada salah satu dari 3 hal berikut:
+
+Kemungkinan 1 (paling sering)
+
+Tombol Login tidak memanggil doLogin().
+
+Cari tombol login di file index.html.
+
+Kirimkan bagian yang mirip seperti ini:
+
+<button ...>
+
+atau
+
+<form ...>
+
+yang berhubungan dengan login.
+
+Saya perlu melihat:
+
+input email
+input password
+tombol login
+Kemungkinan 2
+
+Ada error JavaScript sebelum fungsi login dijalankan.
+
+Biasanya setelah edit besar oleh Claude, ada:
+
+Unexpected token
+
+atau
+
+ReferenceError
+
+yang membuat seluruh file app.js berhenti.
+
+Karena Anda menggunakan tablet dan tidak bisa buka Console, cara termudah adalah saya cek struktur HTML login terlebih dahulu.
+
+Langkah berikutnya
+
+Tolong kirim potongan HTML halaman login, khususnya bagian:
+
+<input id="login-email">
+<input id="login-password">
+<button ...>
+
+beserta tombol Login-nya.
+
+Setelah saya lihat itu, kita bisa langsung tahu apakah tombol login memang memanggil doLogin() atau tidak.
+
+<div id="page-login" class="page active">
+  <div class="login-bg">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-icon">☕</div>
+        <h1 class="brand-title">TIKUM</h1>
+        <p class="brand-sub">ANGKRINGAN &amp; COFFEE</p>
+      </div>
+      <form id="form-login" class="login-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="email@tikum.com" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="input-password-wrap">
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" class="btn-toggle-pw" onclick="togglePassword()" title="Tampilkan password">👁</button>
+          </div>
+        </div>
+        <div id="login-error" class="login-error hidden"></div>
+        <button type="submit" id="btn-login" class="btn-primary btn-full" onclick="doLogin()">
+          <span id="btn-login-text">Masuk</span>
+          <span id="btn-login-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+      <p class="login-footer">© 2026 TIKUM. Semua hak dilindungi.</p>
+    </div>
+  </div>
+</div>
+
+
+Bagus. HTML login-nya terlihat normal dan tombolnya memang memanggil:
+
+onclick="doLogin()"
+
+Jadi masalahnya kemungkinan besar bukan di HTML, tetapi ada error JavaScript yang membuat doLogin() tidak pernah terbaca oleh browser.
+
+Langkah 1 (paling cepat)
+
+Tambahkan baris berikut tepat di awal fungsi doLogin():
+
+async function doLogin() {
+
+  alert('LOGIN DIKLIK');
+
+  const email    = _el('login-email').value.trim();
+  const password = _el('login-password').value;
+
+Simpan → upload → deploy → refresh aplikasi.
+
+Hasil yang mungkin
+A. Jika muncul popup:
+LOGIN DIKLIK
+
+Berarti tombol bekerja dan fungsi doLogin() berjalan.
+
+Lanjut ke langkah berikutnya.
+
+B. Jika popup TIDAK muncul
+
+Berarti browser tidak menemukan fungsi doLogin().
+
+Biasanya penyebabnya:
+
+ada error syntax di app.js
+app.js tidak berhasil dimuat
+ada kurung {} yang kurang
+ada fungsi sebelumnya yang belum ditutup
+Yang saya butuhkan setelah ini
+
+Coba dulu langkah di atas.
+
+Lalu jawab salah satu:
+
+"Popup LOGIN DIKLIK muncul"
+atau
+"Popup LOGIN DIKLIK tidak muncul"
+
+Dari situ kita bisa langsung tahu apakah masalahnya ada di tombol login atau seluruh file app.js tidak terbaca.
+
+async function doLogin() {
+  const email    = _el('login-email').value.trim();
+  const password = _el('login-password').value;
+  const errEl    = _el('login-error');
+  errEl.classList.add('hidden');
+  if (!email || !password) { showError(errEl, 'Email dan password wajib diisi.'); return; }
+
+  _el('btn-login-text').classList.add('hidden');
+  _el('btn-login-spinner').classList.remove('hidden');
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    showError(errEl, mapAuthError(e.code));
+  } finally {
+    _el('btn-login-text').classList.remove('hidden');
+    _el('btn-login-spinner').classList.add('hidden');
+  }
+}
+
+Ini scriptnya
+
+
+Script doLogin() yang Anda kirim terlihat normal. Yang ingin saya cek bukan fungsi aslinya, tetapi hasil setelah ditambahkan test.
+
+Silakan ubah sementara menjadi:
+
+async function doLogin() {
+
+  alert('LOGIN DIKLIK');
+
+  const email    = _el('login-email').value.trim();
+  const password = _el('login-password').value;
+  const errEl    = _el('login-error');
+  errEl.classList.add('hidden');
+
+  if (!email || !password) {
+    showError(errEl, 'Email dan password wajib diisi.');
+    return;
+  }
+
+  _el('btn-login-text').classList.add('hidden');
+  _el('btn-login-spinner').classList.remove('hidden');
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    showError(errEl, mapAuthError(e.code));
+  } finally {
+    _el('btn-login-text').classList.remove('hidden');
+    _el('btn-login-spinner').classList.add('hidden');
+  }
+}
+
+Lalu:
+
+Simpan file.
+Upload ke Github/Firebase.
+Deploy ulang.
+Refresh browser (Ctrl+F5 jika di PC, atau refresh penuh di tablet).
+Klik tombol Masuk.
+
+Pertanyaan saya:
+
+👉 Apakah muncul popup "LOGIN DIKLIK" atau tidak?
+
+Jika muncul, berarti fungsi login berjalan dan masalah ada di Firebase/Auth.
+Jika tidak muncul, berarti file app.js tidak termuat sempurna atau ada error syntax di bagian lain file sehingga browser berhenti membaca JavaScript.
+
+Jangan lanjut ke langkah lain dulu. Beri tahu saya hasilnya: muncul atau tidak muncul.
+
+Tidak muncul
+
+Nah, ini sudah sangat membantu. 👍
+
+Kalau popup "LOGIN DIKLIK" tidak muncul, berarti masalahnya bukan Firebase Login, tetapi browser tidak berhasil membaca file app.js sampai ke fungsi doLogin().
+
+Artinya ada error syntax di file JavaScript setelah perubahan dari Claude.
+
+Langkah berikutnya (satu langkah saja)
+
+Cari di file index.html bagian yang memanggil app.js.
+
+Biasanya bentuknya seperti:
+
+<script src="app.js"></script>
+
+atau
+
+<script defer src="app.js"></script>
+
+Kirimkan saya:
+
+20 baris terakhir dari file index.html
+
+atau minimal bagian paling bawah sebelum </body>.
+
+Contohnya:
+
+...
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
+Kenapa saya minta ini?
+
+Karena jika app.js tidak dipanggil dengan benar, maka:
+
+doLogin() tidak ada
+alert() tidak muncul
+tombol login terlihat bisa diklik tetapi tidak melakukan apa-apa
+
+Kalau pemanggilan app.js sudah benar, langkah berikutnya kita cek apakah ada kurung kurawal {} yang hilang di file hasil edit Claude.
+
+Kirim dulu bagian bawah index.html.
+
+<!-- Modal Tutup Shift -->
+<div id="modal-tutup-shift" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-tutup-shift')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔒 Tutup Shift</h3>
+      <button class="modal-close" onclick="closeModal('modal-tutup-shift')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="shift-summary-grid" id="tutup-shift-summary"></div>
+      <div class="form-group">
+        <label>Kas Aktual (hitung fisik) *</label>
+        <input type="number" id="tutup-kas-aktual" placeholder="0" min="0" oninput="hitungSelisihTutup()" />
+      </div>
+      <div class="shift-selisih-box">
+        <div class="selisih-row">
+          <span>Saldo Teoritis</span>
+          <span id="tutup-saldo-teoritis">Rp 0</span>
+        </div>
+        <div class="selisih-row">
+          <span>Kas Aktual</span>
+          <span id="tutup-kas-display">Rp 0</span>
+        </div>
+        <div class="selisih-row selisih-main">
+          <span>Selisih</span>
+          <span id="tutup-selisih">Rp 0</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-tutup-shift')">Batal</button>
+      <button class="btn-danger" onclick="konfirmasiTutupShift()" id="btn-tutup-shift-ok">
+        <span id="tutup-shift-text">🔒 Tutup Shift</span>
+        <span id="tutup-shift-spin" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+
+Bagus. Dari sini kita tahu:
+
+✅ app.js dipanggil dengan benar
+
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+
+Tetapi:
+
+❌ fungsi doLogin() tidak ditemukan browser
+
+Artinya hampir pasti ada error syntax di dalam app.js sehingga browser berhenti membaca file sebelum sampai ke fungsi login.
+
+Langkah berikutnya
+
+Saya ingin cek bagian paling bawah file app.js.
+
+Kirimkan 50-100 baris terakhir dari app.js.
+
+Cari bagian paling bawah file, biasanya berisi seperti:
+
+document.addEventListener(...)
+
+atau
+
+window.onload = ...
+
+atau
+
+// SHIFT
+async function ...
+
+sampai baris terakhir file.
+
+Kenapa?
+
+Kalau ada satu saja:
+
+if (...) {
+
+tanpa penutup:
+
+}
+
+maka seluruh file setelah titik itu tidak akan dibaca browser.
+
+Akibatnya:
+
+doLogin() tidak ada
+loadProdukRealtime() tidak ada
+semua tombol tidak bekerja
+
+Jadi sekarang cukup kirim:
+
+📌 50–100 baris paling bawah app.js
+
+Jangan seluruh file, cukup bagian akhir file saja. Biasanya dari situ langsung ketahuan kurung yang hilang atau fungsi yang belum ditutup.
+
+
+function hitungSelisihTutup() {
+  const kasAktual = parseInt(_el('tutup-kas-aktual')?.value || 0);
+  const selisih   = kasAktual - shiftSaldoTeoritis;
+  _setTxt('tutup-kas-display', formatRp(kasAktual));
+  const el = _el('tutup-selisih');
+  if (el) {
+    el.textContent = (selisih >= 0 ? '+' : '') + formatRp(selisih);
+    el.style.color = selisih >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+}
+
+async function konfirmasiTutupShift() {
+  if (!shiftData) return;
+  const kasAktual = parseInt(_el('tutup-kas-aktual')?.value || 0);
+
+  const btnT = _el('tutup-shift-text'); const btnS = _el('tutup-shift-spin');
+  btnT.classList.add('hidden'); btnS.classList.remove('hidden');
+
+  try {
+    const nowTs    = firebase.firestore.Timestamp.now();
+    const sasT     = parseInt(_el('sas-trx')?.textContent || 0) || 0;
+    const sasO     = shiftSaldoTeoritis;   // sudah dihitung di loadShiftStats
+    const sasD     = parseInt((_el('sas-diskon')?.textContent||'0').replace(/\D/g,'')) || 0;
+    const sasP     = parseInt((_el('sas-pengeluaran')?.textContent||'0').replace(/\D/g,'')) || 0;
+
+    await db.collection('shift_sessions').doc(shiftData.id).update({
+      status:          'closed',
+      closeTime:       nowTs,
+      totalTrx:        sasT,
+      diskonShift:     sasD,
+      pengeluaranShift: sasP,
+      saldoTeoritis:   shiftSaldoTeoritis,
+      kasAktual:       kasAktual,
+      selisih:         kasAktual - shiftSaldoTeoritis,
+      updatedAt:       nowTs,
+    });
+
+    shiftData = null; shiftSaldoTeoritis = 0;
+    updateShiftBadge(false);
+    closeModal('modal-tutup-shift');
+    renderShiftPage();
+    showToast('Shift berhasil ditutup! 🔒', 'success');
+  } catch (e) { showToast('Gagal menutup shift: ' + e.message, 'error'); }
+  finally { btnT.classList.remove('hidden'); btnS.classList.add('hidden'); }
+}
+
+// =============================================
+// LAPORAN SHIFT
+// =============================================
+async function loadLaporanShift() {
+  const awal  = _el('ls-awal')?.value;
+  const akhir = _el('ls-akhir')?.value;
+  const kasir = (_el('ls-kasir')?.value || '').toLowerCase().trim();
+  const tbody = _el('tabel-laporan-shift');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Memuat data...</td></tr>';
+
+  try {
+    let q = db.collection('shift_sessions').orderBy('openTime', 'desc');
+    if (awal)  q = q.where('openTime', '>=', firebase.firestore.Timestamp.fromDate(new Date(awal  + 'T00:00:00')));
+    if (akhir) q = q.where('openTime', '<=', firebase.firestore.Timestamp.fromDate(new Date(akhir + 'T23:59:59')));
+
+    const snap = await q.get();
+    let list = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    if (kasir) list = list.filter(s => (s.kasir||'').toLowerCase().includes(kasir) || (s.kasirEmail||'').toLowerCase().includes(kasir));
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Tidak ada data shift pada periode ini</td></tr>'; return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+      const selisih   = s.selisih ?? null;
+      const selClass  = selisih === null ? '' : (selisih >= 0 ? 'selisih-pos' : 'selisih-neg');
+      const selLabel  = selisih === null ? '–' : ((selisih >= 0 ? '+' : '') + formatRp(selisih));
+      const statusBdg = s.status === 'open'
+        ? '<span class="badge badge-success">Aktif</span>'
+        : '<span class="badge">Tutup</span>';
+      return 
+        <tr>
+          <td style="font-weight:500">${s.kasir||s.kasirEmail||'–'}</td>
+          <td style="white-space:nowrap;font-size:0.8rem">${formatDateTime(s.openTime)}</td>
+          <td style="white-space:nowrap;font-size:0.8rem">${s.closeTime?formatDateTime(s.closeTime):'–'}</td>
+          <td>${formatRp(s.openingCash||0)}</td>
+          <td style="font-weight:600;color:var(--gold)">${formatRp(s.omzetShift||0)}</td>
+          <td style="color:var(--danger)">${formatRp(s.diskonShift||0)}</td>
+          <td>${formatRp(s.pengeluaranShift||0)}</td>
+          <td>${formatRp(s.saldoTeoritis||0)}</td>
+          <td>${s.kasAktual!=null?formatRp(s.kasAktual):'–'}</td>
+          <td class="${selClass}">${selLabel}</td>
+          <td>${statusBdg}</td>
+        </tr>;
+    }).join('');
+  } catch (e) {
+    console.error('Laporan shift error:', e);
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Gagal memuat data</td></tr>';
+    showToast('Gagal memuat laporan shift: ' + e.message, 'error');
+  }
+}
+
+// =============================================
+// MODAL HELPERS
+// =============================================
+function openModal(id) {
+  const el = _el(id); if (el) { el.classList.remove('hidden'); el.style.display = 'flex'; }
+}
+function closeModal(id) {
+  const el = _el(id); if (el) { el.classList.add('hidden'); el.style.display = ''; }
+}
+function closeModalIfOutside(event, id) { if (event.target.id === id) closeModal(id); }
+
+// =============================================
+// TOAST
+// =============================================
+function showToast(msg, type = 'info') {
+  const container = _el('toast-container');
+  if (!container) return;
+  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = toast ${type};
+  toast.innerHTML = <span>${icons[type]||'ℹ️'}</span> ${msg};
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 350);
+  }, 3000);
+}
+
+// =============================================
+// UTILITY
+// =============================================
+function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
+function metodeBadge(m)  { return { tunai:'success', qris:'warning', transfer:'warning' }[m] || 'warning'; }
+
+// Enter key on login
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const lp = _el('page-login');
+    if (lp && lp.classList.contains('active')) doLogin();
+  }
+});
+
+Baik, dari script yang Anda kirim, saya justru melihat fungsi login dan script akhir file tidak ada masalah yang fatal.
+
+Karena gejalanya:
+
+Klik tombol login → tidak ada respon
+Tidak muncul error email/password
+Tidak masuk dashboard
+Sebelumnya muncul error Firestore Permission Denied
+
+Maka kita harus cek 1 hal paling dasar dulu.
+
+STEP 1
+
+Cari script berikut di app.js:
+
+document.addEventListener('DOMContentLoaded', () => {
+
+atau
+
+window.onload = function() {
+
+atau
+
+init();
+
+atau
+
+initializeApp();
+
+atau bagian paling bawah file yang berisi:
+
+auth.onAuthStateChanged(...)
+
+Saya ingin melihat 20-30 baris paling bawah dari file app.js.
+
+Copy paste bagian paling bawah file app.js saja.
+
+Karena kalau ada 1 kurung kurawal (}) yang hilang di atas fungsi yang Anda kirim, maka:
+
+file JS berhenti dibaca
+tombol login tidak bekerja
+event tidak terpasang
+tidak muncul error di layar
+
+Jadi sekarang jangan ubah apa-apa dulu.
+
+Kirim:
+
+30 baris terakhir file app.js (paling bawah sampai akhir file).
+
+Setelah saya lihat bagian akhir file, saya akan tunjukkan langkah berikutnya.
+
+// Enter key on login
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const lp = _el('page-login');
+    if (lp && lp.classList.contains('active')) doLogin();
+  }
+});
+
+Bagus. Dari yang Anda kirim, berarti file app.js memang sampai akhir dan tidak terpotong.
+
+Sekarang kita lanjut ke pengecekan berikutnya.
+
+STEP 2 - Cek Firebase Config
+
+Tolong buka file:
+
+firebase-config.js
+
+Lalu copy paste bagian yang berisi:
+
+firebase.initializeApp(...)
+
+atau
+
+const firebaseConfig = {
+...
+}
+
+beserta kode di bawahnya yang biasanya seperti:
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+Saya ingin memastikan:
+
+Firebase berhasil terhubung
+Auth berhasil dibuat
+Firestore berhasil dibuat
+
+Karena kalau auth atau db gagal dibuat, maka:
+
+await auth.signInWithEmailAndPassword(...)
+
+tidak akan jalan sama sekali saat tombol login ditekan.
+
+Kalau file terlalu panjang, cukup kirim bagian seperti contoh ini:
+
+const firebaseConfig = {
+ apiKey: "...",
+ authDomain: "...",
+ projectId: "...",
+ ...
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+Kirim bagian itu saja, nanti kita cek langkah berikutnya.
+
+const firebaseConfig = {
+   apiKey: "AIzaSyBxvO_V-vuJv-5ebFgEMEDJNR8ITds0NQ4",
+  authDomain: "tikum-angkringancoffe-a8c35.firebaseapp.com",
+  projectId: "tikum-angkringancoffe-a8c35",
+  storageBucket: "tikum-angkringancoffe-a8c35.firebasestorage.app",
+  messagingSenderId: "220187399188",
+  appId: "1:220187399188:web:0187924a926b4e3d198301"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Enable offline persistence
+db.enablePersistence().catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Persistence gagal: multiple tabs open');
+  } else if (err.code === 'unimplemented') {
+    console.warn('Persistence tidak didukung browser ini');
+  }
+});
+
+Bagus. firebase-config.js terlihat normal. Saya tidak melihat kesalahan pada konfigurasi Firebase.
+
+Sekarang kita fokus ke penyebab paling mungkin.
+
+Dari riwayat error sebelumnya:
+
+FirebaseError: Missing or insufficient permissions
+
+dan sekarang:
+
+Klik login tidak ada respon
+
+sering terjadi karena Auth berhasil login, tetapi setelah login aplikasi langsung crash saat menjalankan fungsi lain.
+
+Di script Anda ada:
+
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    currentUser = user;
+    _setTxt('sidebar-user-email', user.email);
+    showApp();
+    loadDashboard();
+    loadProdukRealtme();
+    checkShiftAktif();
+  }
+});
+
+Kalau salah satu fungsi berikut error:
+
+showApp();
+loadDashboard();
+loadProdukRealtme();
+checkShiftAktif();
+
+maka yang terlihat adalah:
+
+klik login
+loading sebentar
+tidak masuk dashboard
+terlihat seperti login tidak bekerja
+STEP 3
+
+Cari fungsi:
+
+function showApp()
+
+atau
+
+const showApp = () =>
+
+Lalu kirim isi fungsi tersebut.
+
+Contoh:
+
+function showApp() {
+   ...
+}
+
+Jangan kirim seluruh file.
+
+Cukup fungsi showApp() saja.
+
+Setelah itu kita cek apakah ada element HTML yang hilang sehingga aplikasi berhenti tepat setelah login.
+
+function showApp() {
+  _el('page-login').classList.replace('active', 'hidden') || _el('page-login').classList.add('hidden');
+  _el('page-app').classList.remove('hidden');
+  _el('page-app').classList.add('active');
+
+
+Bagus, kita sudah mulai menemukan sumber masalahnya.
+
+Dari kode yang Anda kirim, saya melihat kemungkinan besar ada error JavaScript sebelum proses login selesai, sehingga setelah klik login tidak ada reaksi.
+
+Mari kita cek 1 langkah dulu, jangan langsung banyak perubahan.
+
+STEP 1 - Cek fungsi showApp()
+
+Kode yang Anda kirim:
+
+function showApp() {
+  _el('page-login').classList.replace('active', 'hidden') || _el('page-login').classList.add('hidden');
+  _el('page-app').classList.remove('hidden');
+  _el('page-app').classList.add('active');
+
+Saya perhatikan ada yang mencurigakan:
+
+👉 Fungsi belum ditutup.
+
+Seharusnya ada kurung tutup:
+
+function showApp() {
+  _el('page-login').classList.replace('active', 'hidden') || _el('page-login').classList.add('hidden');
+  _el('page-app').classList.remove('hidden');
+  _el('page-app').classList.add('active');
+}
+Pertanyaan
+
+Tolong cari di file app.js:
+
+Apakah setelah baris tersebut ada tanda } ?
+Atau memang fungsi berakhir seperti yang Anda kirim?
+
+Kalau memang tidak ada }, seluruh JavaScript setelahnya akan gagal dibaca browser dan login tidak akan bekerja.
+
+📸 Kirimkan 15-20 baris setelah fungsi showApp() supaya saya bisa cek struktur kodenya. Jangan yang lain dulu.
+
+function showApp() {
+  _el('page-login').classList.replace('active', 'hidden') || _el('page-login').classList.add('hidden');
+  _el('page-app').classList.remove('hidden');
+  _el('page-app').classList.add('active');
+}
+
+function showLogin() {
+  _el('page-app').classList.replace('active', 'hidden') || _el('page-app').classList.add('hidden');
+  _el('page-login').classList.remove('hidden');
+  _el('page-login').classList.add('active');
+}
+
+function navigateTo(page, linkEl) {
+  document.querySelectorAll('.content-section').forEach(s => {
+    s.classList.remove('active'); s.classList.add('hidden');
+  });
+  const target = _el('section-' + page);
+  if (target) { target.classList.remove('hidden'); target.classList.add('active'); }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (linkEl) linkEl.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard', kasir: 'Kasir', produk: 'Master Produk',
+    laporan: 'Laporan Penjualan', 'report-produk': 'Report Produk Terjual',
+    pengeluaran: 'Belanja & Pengeluaran', shift: 'Manajemen Shift',
+    'laporan-shift': 'Laporan Shift',
+  };
+
+Oke, dari potongan kode yang Anda kirim, saya mulai melihat pola masalahnya.
+
+Gejalanya:
+
+Login berhasil diklik tetapi tidak masuk ke aplikasi.
+Sebelumnya muncul error:
+FirebaseError: Missing or insufficient permissions
+Error produk muncul saat logout/login.
+
+Mari kita cek 1 langkah saja dulu supaya tidak bingung.
+
+Langkah 1 - Cek apakah Auth State berjalan
+
+Cari bagian ini:
+
+auth.onAuthStateChanged((user) => {
     if (user) {
       currentUser = user;
       _setTxt('sidebar-user-email', user.email);
@@ -130,14 +954,36 @@ document.addEventListener('DOMContentLoaded', () => {
       loadProdukRealtme();
       checkShiftAktif();
     } else {
+      currentUser = null;
+      shiftData   = null;
+      showLogin();
+    }
+});
 
-  if (unsubscribeProduk) {
-    unsubscribeProduk();
-    unsubscribeProduk = null;
-  }
+Lalu ganti menjadi:
 
-  currentUser = null;
-  shiftData = null;
+auth.onAuthStateChanged((user) => {
+
+    alert(
+      user
+      ? 'LOGIN BERHASIL: ' + user.email
+      : 'BELUM LOGIN'
+    );
+
+    if (user) {
+      currentUser = user;
+      _setTxt('sidebar-user-email', user.email);
+
+      showApp();
+
+      loadDashboard();
+      loadProdukRealtme();
+      checkShiftAktif();
+
+    } else {
+
+      currentUser = null;
+      shiftData = null;
 
   showLogin();
 }
