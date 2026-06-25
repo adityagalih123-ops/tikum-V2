@@ -155,14 +155,22 @@ function _el(id)        { return document.getElementById(id); }
 // AUTH
 // =============================================
 async function doLogin() {
+
+  alert('LOGIN DIKLIK');
+
   const email    = _el('login-email').value.trim();
   const password = _el('login-password').value;
   const errEl    = _el('login-error');
   errEl.classList.add('hidden');
-  if (!email || !password) { showError(errEl, 'Email dan password wajib diisi.'); return; }
+
+  if (!email || !password) {
+    showError(errEl, 'Email dan password wajib diisi.');
+    return;
+  }
 
   _el('btn-login-text').classList.add('hidden');
   _el('btn-login-spinner').classList.remove('hidden');
+
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (e) {
