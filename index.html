@@ -8,697 +8,874 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
-
-  <!-- Firebase SDKs (compat version) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-  <!-- ======================== LOGIN PAGE ======================== -->
-  <div id="page-login" class="page active">
-    <div class="login-bg">
-      <div class="login-card">
-        <div class="login-brand">
-          <div class="brand-icon">☕</div>
-          <h1 class="brand-title">TIKUM</span></h1>
-          <p class="brand-sub">ANGKRINGAN & COFFE</p>
-        </div>
-        <form id="form-login" class="login-form" onsubmit="return false;">
-          <div class="form-group">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" placeholder="email@angkringan.com" autocomplete="email" required />
-          </div>
-          <div class="form-group">
-            <label for="login-password">Password</label>
-            <div class="input-password-wrap">
-              <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
-              <button type="button" class="btn-toggle-pw" onclick="togglePassword()" title="Tampilkan password">👁</button>
-            </div>
-          </div>
-          <div id="login-error" class="login-error hidden"></div>
-          <button type="submit" id="btn-login" class="btn-primary btn-full" onclick="doLogin()">
-            <span id="btn-login-text">Masuk</span>
-            <span id="btn-login-spinner" class="spinner hidden"></span>
-          </button>
-        </form>
-        <p class="login-footer">© 2026 TIKUM. Semua hak dilindungi.</p>
+<!-- ======================== LOGIN ======================== -->
+<div id="page-login" class="page active">
+  <div class="login-bg">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-icon">☕</div>
+        <h1 class="brand-title">TIKUM</h1>
+        <p class="brand-sub">ANGKRINGAN &amp; COFFEE</p>
       </div>
-    </div>
-  </div>
-
-  <!-- ======================== MAIN APP ======================== -->
-  <div id="page-app" class="page hidden">
-
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand-icon-sm">☕</div>
-        <div>
-          <div class="sidebar-brand">TIKUM</div>
-          <div class="sidebar-user" id="sidebar-user-email">–</div>
+      <form id="form-login" class="login-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="email@tikum.com" autocomplete="email" required />
         </div>
-        <button class="btn-sidebar-close" id="btn-sidebar-close" onclick="closeSidebar()">✕</button>
-      </div>
-
-      <nav class="sidebar-nav">
-        <div class="nav-label">Menu Utama</div>
-        <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard', this)">
-          <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
-        </a>
-        <a href="#" class="nav-item" data-page="kasir" onclick="navigateTo('kasir', this)">
-          <span class="nav-icon">🛒</span>
-          <span>Kasir</span>
-        </a>
-        <a href="#" class="nav-item" data-page="produk" onclick="navigateTo('produk', this)">
-          <span class="nav-icon">📦</span>
-          <span>Master Produk</span>
-        </a>
-        <a href="#" class="nav-item" data-page="laporan" onclick="navigateTo('laporan', this)">
-          <span class="nav-icon">📋</span>
-          <span>Laporan Harian</span>
-        </a>
-        <a href="#" class="nav-item" data-page="pengeluaran" onclick="navigateTo('pengeluaran', this)">
-          <span class="nav-icon">🛍️</span>
-          <span>Belanja & Pengeluaran</span>
-        </a>
-      </nav>
-
-      <div class="sidebar-footer">
-        <button class="btn-logout" onclick="doLogout()">
-          <span>🚪</span> Keluar
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="input-password-wrap">
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" class="btn-toggle-pw" onclick="togglePassword()" title="Tampilkan password">👁</button>
+          </div>
+        </div>
+        <div id="login-error" class="login-error hidden"></div>
+        <button type="submit" id="btn-login" class="btn-primary btn-full" onclick="doLogin()">
+          <span id="btn-login-text">Masuk</span>
+          <span id="btn-login-spinner" class="spinner hidden"></span>
         </button>
-      </div>
-    </aside>
-
-    <!-- Overlay for mobile sidebar -->
-    <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
-
-    <!-- Main Content -->
-    <div class="main-content" id="main-content">
-
-      <!-- Topbar -->
-      <header class="topbar">
-        <button class="btn-menu" id="btn-menu" onclick="openSidebar()">☰</button>
-        <div class="topbar-title" id="topbar-title">Dashboard</div>
-        <div class="topbar-right">
-          <div class="topbar-date" id="topbar-date"></div>
-        </div>
-      </header>
-
-      <!-- ===== PAGE: DASHBOARD ===== -->
-      <section id="section-dashboard" class="content-section active">
-        <div class="section-header">
-          <h2>Dashboard</h2>
-          <p>Ringkasan performa hari ini</p>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card accent">
-            <div class="stat-icon">💰</div>
-            <div class="stat-info">
-              <div class="stat-label">Omzet Hari Ini</div>
-              <div class="stat-value" id="stat-omzet">Rp 0</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🧾</div>
-            <div class="stat-info">
-              <div class="stat-label">Transaksi Hari Ini</div>
-              <div class="stat-value" id="stat-trx">0</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🏆</div>
-            <div class="stat-info">
-              <div class="stat-label">Produk Terlaris</div>
-              <div class="stat-value" id="stat-terlaris">–</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-info">
-              <div class="stat-label">Total Produk</div>
-              <div class="stat-value" id="stat-produk">0</div>
-            </div>
-          </div>
-          <div class="stat-card stat-pengeluaran">
-            <div class="stat-icon">🛒</div>
-            <div class="stat-info">
-              <div class="stat-label">Pengeluaran Hari Ini</div>
-              <div class="stat-value" id="stat-pengeluaran-hari">Rp 0</div>
-            </div>
-          </div>
-          <div class="stat-card stat-pengeluaran">
-            <div class="stat-icon">📅</div>
-            <div class="stat-info">
-              <div class="stat-label">Pengeluaran Bulan Ini</div>
-              <div class="stat-value" id="stat-pengeluaran-bulan">Rp 0</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Laporan Keuangan Harian -->
-        <div class="laporan-keuangan-harian card">
-          <div class="card-header">
-            <h3>💹 Laporan Keuangan Hari Ini</h3>
-            <span class="lkh-date" id="lkh-date"></span>
-          </div>
-          <div class="lkh-grid">
-            <div class="lkh-item">
-              <span class="lkh-label">Omzet Kotor</span>
-              <span class="lkh-val" id="lkh-omzet-kotor">Rp 0</span>
-            </div>
-            <div class="lkh-item lkh-minus">
-              <span class="lkh-label">Total Diskon</span>
-              <span class="lkh-val" id="lkh-total-diskon">Rp 0</span>
-            </div>
-            <div class="lkh-item lkh-bersih">
-              <span class="lkh-label">Omzet Bersih</span>
-              <span class="lkh-val" id="lkh-omzet-bersih">Rp 0</span>
-            </div>
-            <div class="lkh-item lkh-minus">
-              <span class="lkh-label">Total Pengeluaran</span>
-              <span class="lkh-val" id="lkh-total-pengeluaran">Rp 0</span>
-            </div>
-            <div class="lkh-item lkh-saldo">
-              <span class="lkh-label">💵 Saldo Kas Hari Ini</span>
-              <span class="lkh-val" id="lkh-saldo-kas">Rp 0</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="dashboard-bottom">
-          <div class="card">
-            <div class="card-header">
-              <h3>Transaksi Terbaru</h3>
-              <button class="btn-sm" onclick="navigateTo('laporan', document.querySelector('[data-page=laporan]'))">Lihat Semua</button>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>No. Transaksi</th>
-                    <th>Waktu</th>
-                    <th>Pembayaran</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody id="tabel-trx-terbaru">
-                  <tr><td colspan="4" class="empty-state">Belum ada transaksi hari ini</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="dashboard-right-col">
-            <div class="card">
-              <div class="card-header">
-                <h3>Top 5 Produk Terlaris</h3>
-              </div>
-              <div id="top-produk-list" class="top-produk-list">
-                <div class="empty-state">Belum ada data</div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header">
-                <h3>🛒 Pengeluaran per Kategori</h3>
-              </div>
-              <div id="pengeluaran-per-kategori" class="top-produk-list">
-                <div class="empty-state">Belum ada data hari ini</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== PAGE: KASIR ===== -->
-      <section id="section-kasir" class="content-section hidden">
-        <div class="section-header">
-          <h2>Kasir</h2>
-          <p>Proses transaksi penjualan</p>
-        </div>
-
-        <div class="kasir-layout">
-          <!-- Panel Kiri: Daftar Produk -->
-          <div class="kasir-produk">
-            <div class="kasir-search-wrap">
-              <input type="text" id="kasir-search" placeholder="🔍  Cari produk..." oninput="filterProdukKasir(this.value)" />
-            </div>
-            <div class="kategori-tabs" id="kategori-tabs">
-              <button class="tab-btn active" onclick="filterKategori('semua', this)">Semua</button>
-            </div>
-            <div class="produk-grid" id="kasir-produk-grid">
-              <!-- Produk cards rendered by JS -->
-            </div>
-          </div>
-
-          <!-- Panel Kanan: Keranjang -->
-          <div class="kasir-keranjang">
-            <div class="keranjang-header">
-              <h3>🛒 Keranjang</h3>
-              <button class="btn-danger-sm" onclick="clearKeranjang()">Kosongkan</button>
-            </div>
-
-            <div class="keranjang-items" id="keranjang-items">
-              <div class="empty-keranjang" id="empty-keranjang">
-                <div style="font-size:2.5rem;">🛒</div>
-                <p>Keranjang masih kosong.<br/>Pilih produk untuk memulai.</p>
-              </div>
-            </div>
-
-            <div class="keranjang-footer" id="keranjang-footer">
-              <div class="total-row">
-                <span>Subtotal</span>
-                <span id="subtotal-text">Rp 0</span>
-              </div>
-
-              <!-- ===== DISKON SECTION ===== -->
-              <div class="diskon-section" id="diskon-section">
-                <div class="diskon-toggle-row">
-                  <label class="section-label" style="margin:0;">🏷️ Diskon</label>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="diskon-aktif" onchange="toggleDiskon(this.checked)" />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div id="diskon-fields" class="diskon-fields hidden">
-                  <div class="diskon-type-row">
-                    <button class="diskon-type-btn active" data-type="nominal" onclick="setDiskonType('nominal', this)">Rp Nominal</button>
-                    <button class="diskon-type-btn" data-type="persen" onclick="setDiskonType('persen', this)">% Persen</button>
-                  </div>
-                  <div class="diskon-input-wrap">
-                    <span class="diskon-prefix" id="diskon-prefix">Rp</span>
-                    <input type="number" id="diskon-nilai" placeholder="0" min="0" oninput="hitungTotal()" />
-                    <span class="diskon-suffix hidden" id="diskon-suffix">%</span>
-                  </div>
-                  <select id="diskon-alasan" onchange="hitungTotal()">
-                    <option value="">— Pilih Alasan Diskon —</option>
-                    <option value="Promo">Promo</option>
-                    <option value="Customer Loyal">Customer Loyal</option>
-                    <option value="Komplain">Komplain</option>
-                    <option value="Harga Khusus">Harga Khusus</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </div>
-
-                <div class="total-row diskon-amount-row hidden" id="diskon-amount-row">
-                  <span id="diskon-label-text">Diskon</span>
-                  <span id="diskon-amount-text" class="diskon-amount-val">− Rp 0</span>
-                </div>
-              </div>
-              <!-- ===== END DISKON ===== -->
-
-              <div class="total-row total-main">
-                <span>Grand Total</span>
-                <span id="total-text">Rp 0</span>
-              </div>
-
-              <div class="pembayaran-section">
-                <label class="section-label">Metode Pembayaran</label>
-                <div class="payment-methods">
-                  <button class="pay-btn active" data-method="tunai" onclick="selectPayment('tunai', this)">💵 Tunai</button>
-                  <button class="pay-btn" data-method="qris" onclick="selectPayment('qris', this)">📱 QRIS</button>
-                  <button class="pay-btn" data-method="transfer" onclick="selectPayment('transfer', this)">🏦 Transfer</button>
-                </div>
-
-                <div id="tunai-section" class="tunai-section">
-                  <label>Uang Diterima</label>
-                  <input type="number" id="uang-diterima" placeholder="0" oninput="hitungKembalian()" />
-                  <div class="kembalian-row" id="kembalian-row">
-                    <span>Kembalian</span>
-                    <span id="kembalian-text" class="kembalian-value">Rp 0</span>
-                  </div>
-                </div>
-              </div>
-
-              <button class="btn-bayar" id="btn-bayar" onclick="prosesTransaksi()">
-                <span id="btn-bayar-text">💳 Bayar</span>
-                <span id="btn-bayar-spinner" class="spinner hidden"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== PAGE: MASTER PRODUK ===== -->
-      <section id="section-produk" class="content-section hidden">
-        <div class="section-header">
-          <h2>Master Produk</h2>
-          <p>Kelola daftar produk angkringan</p>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="search-box">
-              <input type="text" id="produk-search" placeholder="🔍  Cari produk..." oninput="filterTabelProduk(this.value)" />
-            </div>
-            <button class="btn-primary" onclick="openModalProduk()">+ Tambah Produk</button>
-          </div>
-
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Nama Produk</th>
-                  <th>Kategori</th>
-                  <th>Harga</th>
-                  <th>Stok</th>
-                  <th>Status</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tabel-produk">
-                <tr><td colspan="7" class="empty-state">Memuat produk...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== PAGE: LAPORAN HARIAN ===== -->
-      <section id="section-laporan" class="content-section hidden">
-        <div class="section-header">
-          <h2>Laporan Penjualan Harian</h2>
-          <p>Riwayat transaksi berdasarkan tanggal</p>
-        </div>
-
-        <div class="laporan-filter card">
-          <div class="filter-row">
-            <div class="form-group-inline">
-              <label>Tanggal</label>
-              <input type="date" id="laporan-tanggal" onchange="loadLaporan()" />
-            </div>
-            <div class="laporan-stats-inline">
-              <div class="mini-stat">
-                <span class="mini-stat-label">Total Transaksi</span>
-                <span class="mini-stat-val" id="laporan-jml-trx">0</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-stat-label">Omzet Kotor</span>
-                <span class="mini-stat-val" id="laporan-omzet-kotor">Rp 0</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-stat-label">Total Diskon</span>
-                <span class="mini-stat-val diskon-color" id="laporan-total-diskon">Rp 0</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-stat-label">Omzet Bersih</span>
-                <span class="mini-stat-val omzet-bersih-color" id="laporan-omzet">Rp 0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>No. Transaksi</th>
-                  <th>Waktu</th>
-                  <th>Items</th>
-                  <th>Pembayaran</th>
-                  <th>Subtotal</th>
-                  <th>Diskon</th>
-                  <th>Grand Total</th>
-                  <th>Detail</th>
-                </tr>
-              </thead>
-              <tbody id="tabel-laporan">
-                <tr><td colspan="8" class="empty-state">Pilih tanggal untuk melihat laporan</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== PAGE: BELANJA & PENGELUARAN ===== -->
-      <section id="section-pengeluaran" class="content-section hidden">
-        <div class="section-header">
-          <h2>Belanja & Pengeluaran</h2>
-          <p>Catat dan kelola pengeluaran usaha</p>
-        </div>
-
-        <!-- Form Input -->
-        <div class="card pengeluaran-form-card">
-          <div class="card-header">
-            <h3 id="form-pengeluaran-title">➕ Tambah Pengeluaran</h3>
-            <button class="btn-danger-sm hidden" id="btn-batal-edit-pengeluaran" onclick="batalEditPengeluaran()">✕ Batal Edit</button>
-          </div>
-          <div class="pengeluaran-form-body">
-            <input type="hidden" id="pengeluaran-edit-id" />
-            <div class="pform-grid">
-              <div class="form-group">
-                <label>Tanggal Transaksi *</label>
-                <input type="date" id="p-tanggal" />
-              </div>
-              <div class="form-group">
-                <label>Kategori *</label>
-                <select id="p-kategori">
-                  <option value="">— Pilih Kategori —</option>
-                  <option value="Bahan Makanan">Bahan Makanan</option>
-                  <option value="Bahan Minuman">Bahan Minuman</option>
-                  <option value="Bahan Gorengan">Bahan Gorengan</option>
-                  <option value="Alat & Operasional">Alat &amp; Operasional</option>
-                  <option value="Asset">Asset</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Item / Nama Barang *</label>
-                <input type="text" id="p-item" placeholder="mis. Minyak Goreng, Gula" />
-              </div>
-              <div class="form-group pform-qty-wrap">
-                <label>Qty *</label>
-                <div class="pform-qty-row">
-                  <input type="number" id="p-qty" placeholder="0" min="0" step="0.01" oninput="hitungTotalPengeluaran()" />
-                  <select id="p-satuan">
-                    <option value="Kg">Kg</option>
-                    <option value="Gram">Gram</option>
-                    <option value="Liter">Liter</option>
-                    <option value="Ml">Ml</option>
-                    <option value="Pcs">Pcs</option>
-                    <option value="Box">Box</option>
-                    <option value="Pack">Pack</option>
-                    <option value="Botol">Botol</option>
-                    <option value="Tabung">Tabung</option>
-                    <option value="Unit">Unit</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Harga Satuan (Rp) *</label>
-                <input type="number" id="p-harga-satuan" placeholder="0" min="0" oninput="hitungTotalPengeluaran()" />
-              </div>
-              <div class="form-group">
-                <label>Total Harga</label>
-                <div class="p-total-display" id="p-total-display">Rp 0</div>
-                <input type="hidden" id="p-total-harga" value="0" />
-              </div>
-              <div class="form-group pform-full">
-                <label>Keterangan (opsional)</label>
-                <input type="text" id="p-keterangan" placeholder="Catatan tambahan..." />
-              </div>
-            </div>
-            <div class="pform-actions">
-              <button class="btn-primary" onclick="simpanPengeluaran()" id="btn-simpan-pengeluaran">
-                <span id="btn-sp-text">💾 Simpan Pengeluaran</span>
-                <span id="btn-sp-spinner" class="spinner hidden"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter & Tabel -->
-        <div class="card">
-          <div class="card-header pengeluaran-filter-header">
-            <div class="pengeluaran-filters">
-              <div class="form-group-inline">
-                <label>Dari</label>
-                <input type="date" id="filter-p-awal" onchange="loadPengeluaran()" />
-              </div>
-              <div class="form-group-inline">
-                <label>Sampai</label>
-                <input type="date" id="filter-p-akhir" onchange="loadPengeluaran()" />
-              </div>
-              <div class="form-group-inline">
-                <label>Kategori</label>
-                <select id="filter-p-kategori" onchange="loadPengeluaran()">
-                  <option value="">Semua Kategori</option>
-                  <option value="Bahan Makanan">Bahan Makanan</option>
-                  <option value="Bahan Minuman">Bahan Minuman</option>
-                  <option value="Bahan Gorengan">Bahan Gorengan</option>
-                  <option value="Alat & Operasional">Alat &amp; Operasional</option>
-                  <option value="Asset">Asset</option>
-                </select>
-              </div>
-            </div>
-            <div class="pengeluaran-total-filter">
-              <span class="mini-stat-label">Total Terfilter</span>
-              <span class="mini-stat-val pengeluaran-total-val" id="p-total-terfilter">Rp 0</span>
-            </div>
-          </div>
-
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Kategori</th>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Satuan</th>
-                  <th>Harga Satuan</th>
-                  <th>Total Harga</th>
-                  <th>Keterangan</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="tabel-pengeluaran">
-                <tr><td colspan="9" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-    </div><!-- /main-content -->
-  </div><!-- /page-app -->
-
-
-  <!-- ============================= MODALS ============================= -->
-
-  <!-- Modal Tambah/Edit Produk -->
-  <div id="modal-produk" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-produk')">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modal-produk-title">Tambah Produk</h3>
-        <button class="modal-close" onclick="closeModal('modal-produk')">✕</button>
-      </div>
-      <form id="form-produk" class="modal-body" onsubmit="return false;">
-        <input type="hidden" id="produk-id" />
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nama Produk *</label>
-            <input type="text" id="produk-nama" placeholder="mis. Nasi Kucing Ayam" required />
-          </div>
-          <div class="form-group">
-            <label>Kategori *</label>
-            <input type="text" id="produk-kategori" placeholder="mis. Makanan, Minuman" list="kategori-list" required />
-            <datalist id="kategori-list"></datalist>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Harga (Rp) *</label>
-            <input type="number" id="produk-harga" placeholder="0" min="0" required />
-          </div>
-          <div class="form-group">
-            <label>Stok</label>
-            <input type="number" id="produk-stok" placeholder="0" min="0" value="0" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Deskripsi</label>
-          <textarea id="produk-deskripsi" placeholder="Deskripsi singkat produk..." rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Status</label>
-          <select id="produk-status">
-            <option value="aktif">Aktif</option>
-            <option value="nonaktif">Nonaktif</option>
-          </select>
-        </div>
       </form>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
-        <button class="btn-primary" onclick="simpanProduk()" id="btn-simpan-produk">
-          <span id="btn-simpan-text">Simpan</span>
-          <span id="btn-simpan-spinner" class="spinner hidden"></span>
-        </button>
-      </div>
+      <p class="login-footer">© 2026 TIKUM. Semua hak dilindungi.</p>
     </div>
   </div>
+</div>
 
-  <!-- Modal Konfirmasi Hapus -->
-  <div id="modal-hapus" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-hapus')">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3>Hapus Produk</h3>
-        <button class="modal-close" onclick="closeModal('modal-hapus')">✕</button>
+<!-- ======================== MAIN APP ======================== -->
+<div id="page-app" class="page hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-icon-sm">☕</div>
+      <div>
+        <div class="sidebar-brand">TIKUM</div>
+        <div class="sidebar-user" id="sidebar-user-email">–</div>
       </div>
-      <div class="modal-body">
-        <p>Apakah Anda yakin ingin menghapus produk <strong id="hapus-produk-nama"></strong>? Tindakan ini tidak dapat dibatalkan.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-hapus')">Batal</button>
-        <button class="btn-danger" onclick="confirmHapusProduk()" id="btn-hapus-confirm">Hapus</button>
+      <button class="btn-sidebar-close" id="btn-sidebar-close" onclick="closeSidebar()">✕</button>
+    </div>
+
+    <!-- Shift Status Banner -->
+    <div id="shift-sidebar-banner" class="shift-banner hidden">
+      <div class="shift-banner-icon">🟢</div>
+      <div>
+        <div class="shift-banner-label">Shift Aktif</div>
+        <div class="shift-banner-sub" id="shift-banner-kasir">–</div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal Struk Transaksi -->
-  <div id="modal-struk" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-struk')">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3>✅ Transaksi Berhasil</h3>
-        <button class="modal-close" onclick="closeModal('modal-struk'); resetKasir()">✕</button>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu Utama</div>
+      <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard',this)">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-page="kasir" onclick="navigateTo('kasir',this)">
+        <span class="nav-icon">🛒</span><span>Kasir</span>
+      </a>
+      <a href="#" class="nav-item" data-page="produk" onclick="navigateTo('produk',this)">
+        <span class="nav-icon">📦</span><span>Master Produk</span>
+      </a>
+
+      <div class="nav-label">Laporan</div>
+      <a href="#" class="nav-item" data-page="laporan" onclick="navigateTo('laporan',this)">
+        <span class="nav-icon">📋</span><span>Laporan Penjualan</span>
+      </a>
+      <a href="#" class="nav-item" data-page="report-produk" onclick="navigateTo('report-produk',this)">
+        <span class="nav-icon">📈</span><span>Report Produk Terjual</span>
+      </a>
+      <a href="#" class="nav-item" data-page="laporan-shift" onclick="navigateTo('laporan-shift',this)">
+        <span class="nav-icon">📅</span><span>Laporan Shift</span>
+      </a>
+
+      <div class="nav-label">Keuangan</div>
+      <a href="#" class="nav-item" data-page="pengeluaran" onclick="navigateTo('pengeluaran',this)">
+        <span class="nav-icon">💸</span><span>Belanja &amp; Pengeluaran</span>
+      </a>
+
+      <div class="nav-label">Operasional</div>
+      <a href="#" class="nav-item" data-page="shift" onclick="navigateTo('shift',this)">
+        <span class="nav-icon">⏰</span><span>Manajemen Shift</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()"><span>🚪</span> Keluar</button>
+    </div>
+  </aside>
+
+  <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
+
+  <!-- Main Content -->
+  <div class="main-content" id="main-content">
+
+    <header class="topbar">
+      <button class="btn-menu" id="btn-menu" onclick="openSidebar()">☰</button>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <div id="shift-topbar-pill" class="shift-status-pill hidden"></div>
+        <div class="topbar-date" id="topbar-date"></div>
       </div>
-      <div class="modal-body">
-        <div class="struk" id="struk-content">
-          <!-- Diisi oleh JS -->
+    </header>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section id="section-dashboard" class="content-section active">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <p id="dash-op-label">Ringkasan performa hari operasional</p>
+      </div>
+
+      <!-- Widget Shift Aktif -->
+      <div id="widget-shift-aktif" class="widget-shift-aktif hidden">
+        <div class="wsa-icon">⏰</div>
+        <div class="wsa-body">
+          <div class="wsa-title">Shift Sedang Berjalan</div>
+          <div class="wsa-meta" id="wsa-meta">–</div>
+        </div>
+        <div class="wsa-stats">
+          <div class="wsa-stat">
+            <span class="wsa-stat-label">Modal Awal</span>
+            <span class="wsa-stat-val" id="wsa-modal">Rp 0</span>
+          </div>
+          <div class="wsa-stat">
+            <span class="wsa-stat-label">Omzet Shift</span>
+            <span class="wsa-stat-val" id="wsa-omzet">Rp 0</span>
+          </div>
+          <div class="wsa-stat">
+            <span class="wsa-stat-label">Transaksi</span>
+            <span class="wsa-stat-val" id="wsa-trx">0</span>
+          </div>
+        </div>
+        <button class="btn-shift-action danger" onclick="navigateTo('shift',document.querySelector('[data-page=shift]'))">🔒 Tutup Shift</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card accent">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <div class="stat-label">Omzet Hari Ini</div>
+            <div class="stat-value" id="stat-omzet">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧾</div>
+          <div class="stat-info">
+            <div class="stat-label">Transaksi Hari Ini</div>
+            <div class="stat-value" id="stat-trx">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-info">
+            <div class="stat-label">Produk Terlaris</div>
+            <div class="stat-value" id="stat-terlaris">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Produk</div>
+            <div class="stat-value" id="stat-produk">0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-pengeluaran">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-info">
+            <div class="stat-label">Pengeluaran Hari Ini</div>
+            <div class="stat-value" id="stat-pengeluaran-hari">Rp 0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-pengeluaran">
+          <div class="stat-icon">📅</div>
+          <div class="stat-info">
+            <div class="stat-label">Pengeluaran Bulan Ini</div>
+            <div class="stat-value" id="stat-pengeluaran-bulan">Rp 0</div>
+          </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="printStruk()">🖨 Cetak</button>
-        <button class="btn-primary" onclick="closeModal('modal-struk'); resetKasir()">Transaksi Baru</button>
+
+      <!-- LKH -->
+      <div class="laporan-keuangan-harian card">
+        <div class="card-header">
+          <h3>💹 Laporan Keuangan Hari Ini</h3>
+          <span class="lkh-date" id="lkh-date"></span>
+        </div>
+        <div class="lkh-grid">
+          <div class="lkh-item">
+            <span class="lkh-label">Omzet Kotor</span>
+            <span class="lkh-val" id="lkh-omzet-kotor">Rp 0</span>
+          </div>
+          <div class="lkh-item lkh-minus">
+            <span class="lkh-label">Total Diskon</span>
+            <span class="lkh-val" id="lkh-total-diskon">Rp 0</span>
+          </div>
+          <div class="lkh-item lkh-bersih">
+            <span class="lkh-label">Omzet Bersih</span>
+            <span class="lkh-val" id="lkh-omzet-bersih">Rp 0</span>
+          </div>
+          <div class="lkh-item lkh-minus">
+            <span class="lkh-label">Total Pengeluaran</span>
+            <span class="lkh-val" id="lkh-total-pengeluaran">Rp 0</span>
+          </div>
+          <div class="lkh-item lkh-saldo">
+            <span class="lkh-label">💵 Saldo Kas Hari Ini</span>
+            <span class="lkh-val" id="lkh-saldo-kas">Rp 0</span>
+          </div>
+        </div>
       </div>
+
+      <div class="dashboard-bottom">
+        <div class="card">
+          <div class="card-header">
+            <h3>Transaksi Terbaru</h3>
+            <button class="btn-sm" onclick="navigateTo('laporan',document.querySelector('[data-page=laporan]'))">Lihat Semua</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>No. Transaksi</th><th>Waktu</th><th>Pembayaran</th><th>Total</th></tr>
+              </thead>
+              <tbody id="tabel-trx-terbaru">
+                <tr><td colspan="4" class="empty-state">Belum ada transaksi hari ini</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="dashboard-right-col">
+          <div class="card">
+            <div class="card-header"><h3>Top 5 Produk Terlaris</h3></div>
+            <div id="top-produk-list" class="top-produk-list"><div class="empty-state">Belum ada data</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>🛒 Pengeluaran per Kategori</h3></div>
+            <div id="pengeluaran-per-kategori" class="top-produk-list"><div class="empty-state">Belum ada data hari ini</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KASIR ===== -->
+    <section id="section-kasir" class="content-section hidden">
+      <div class="section-header">
+        <h2>Kasir</h2>
+        <p>Proses transaksi penjualan</p>
+      </div>
+      <div class="kasir-layout">
+        <div class="kasir-produk">
+          <div class="kasir-search-wrap">
+            <input type="text" id="kasir-search" placeholder="🔍  Cari produk..." oninput="filterProdukKasir(this.value)" />
+          </div>
+          <div class="kategori-tabs" id="kategori-tabs">
+            <button class="tab-btn active" onclick="filterKategori('semua',this)">Semua</button>
+          </div>
+          <div class="produk-grid" id="kasir-produk-grid"></div>
+        </div>
+        <div class="kasir-keranjang">
+          <div class="keranjang-header">
+            <h3>🛒 Keranjang</h3>
+            <button class="btn-danger-sm" onclick="clearKeranjang()">Kosongkan</button>
+          </div>
+          <div class="keranjang-items" id="keranjang-items">
+            <div class="empty-keranjang" id="empty-keranjang">
+              <div style="font-size:2.5rem;">🛒</div>
+              <p>Keranjang masih kosong.<br/>Pilih produk untuk memulai.</p>
+            </div>
+          </div>
+          <div class="keranjang-footer" id="keranjang-footer">
+            <div class="total-row">
+              <span>Subtotal</span><span id="subtotal-text">Rp 0</span>
+            </div>
+            <!-- DISKON -->
+            <div class="diskon-section" id="diskon-section">
+              <div class="diskon-toggle-row">
+                <label class="section-label" style="margin:0;">🏷️ Diskon</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="diskon-aktif" onchange="toggleDiskon(this.checked)" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div id="diskon-fields" class="diskon-fields hidden">
+                <div class="diskon-type-row">
+                  <button class="diskon-type-btn active" data-type="nominal" onclick="setDiskonType('nominal',this)">Rp Nominal</button>
+                  <button class="diskon-type-btn" data-type="persen" onclick="setDiskonType('persen',this)">% Persen</button>
+                </div>
+                <div class="diskon-input-wrap">
+                  <span class="diskon-prefix" id="diskon-prefix">Rp</span>
+                  <input type="number" id="diskon-nilai" placeholder="0" min="0" oninput="hitungTotal()" />
+                  <span class="diskon-suffix hidden" id="diskon-suffix">%</span>
+                </div>
+                <select id="diskon-alasan" onchange="hitungTotal()">
+                  <option value="">— Pilih Alasan Diskon —</option>
+                  <option value="Promo">Promo</option>
+                  <option value="Customer Loyal">Customer Loyal</option>
+                  <option value="Komplain">Komplain</option>
+                  <option value="Harga Khusus">Harga Khusus</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div class="total-row diskon-amount-row hidden" id="diskon-amount-row">
+                <span id="diskon-label-text">Diskon</span>
+                <span id="diskon-amount-text" class="diskon-amount-val">− Rp 0</span>
+              </div>
+            </div>
+            <div class="total-row total-main">
+              <span>Grand Total</span><span id="total-text">Rp 0</span>
+            </div>
+            <div class="pembayaran-section">
+              <label class="section-label">Metode Pembayaran</label>
+              <div class="payment-methods">
+                <button class="pay-btn active" data-method="tunai" onclick="selectPayment('tunai',this)">💵 Tunai</button>
+                <button class="pay-btn" data-method="qris" onclick="selectPayment('qris',this)">📱 QRIS</button>
+                <button class="pay-btn" data-method="transfer" onclick="selectPayment('transfer',this)">🏦 Transfer</button>
+              </div>
+              <div id="tunai-section" class="tunai-section">
+                <label>Uang Diterima</label>
+                <input type="number" id="uang-diterima" placeholder="0" oninput="hitungKembalian()" />
+                <div class="kembalian-row" id="kembalian-row">
+                  <span>Kembalian</span>
+                  <span id="kembalian-text" class="kembalian-value">Rp 0</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-bayar" id="btn-bayar" onclick="prosesTransaksi()">
+              <span id="btn-bayar-text">💳 Bayar</span>
+              <span id="btn-bayar-spinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MASTER PRODUK ===== -->
+    <section id="section-produk" class="content-section hidden">
+      <div class="section-header">
+        <h2>Master Produk</h2>
+        <p>Kelola daftar produk — stok bersifat informasi, tidak berkurang saat transaksi</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-box">
+            <input type="text" id="produk-search" placeholder="🔍  Cari produk..." oninput="filterTabelProduk(this.value)" />
+          </div>
+          <button class="btn-primary" onclick="openModalProduk()">+ Tambah Produk</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>#</th><th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Stok (Info)</th><th>Status</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="tabel-produk">
+              <tr><td colspan="7" class="empty-state">Memuat produk...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LAPORAN PENJUALAN ===== -->
+    <section id="section-laporan" class="content-section hidden">
+      <div class="section-header">
+        <h2>Laporan Penjualan</h2>
+        <p>Berdasarkan tanggal operasional warung (17:00 s/d 03:00)</p>
+      </div>
+      <div class="laporan-filter card">
+        <div class="filter-row-wrap">
+          <div class="filter-dates">
+            <div class="form-group-inline">
+              <label>Tgl Awal</label>
+              <input type="date" id="laporan-awal" onchange="loadLaporan()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Tgl Akhir</label>
+              <input type="date" id="laporan-akhir" onchange="loadLaporan()" />
+            </div>
+          </div>
+          <div class="laporan-stats-inline">
+            <div class="mini-stat">
+              <span class="mini-stat-label">Total Transaksi</span>
+              <span class="mini-stat-val" id="laporan-jml-trx">0</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-label">Omzet Kotor</span>
+              <span class="mini-stat-val" id="laporan-omzet-kotor">Rp 0</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-label">Total Diskon</span>
+              <span class="mini-stat-val diskon-color" id="laporan-total-diskon">Rp 0</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-label">Omzet Bersih</span>
+              <span class="mini-stat-val omzet-bersih-color" id="laporan-omzet">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No. Transaksi</th>
+                <th>Tgl Operasional</th>
+                <th>Waktu Asli</th>
+                <th>Items</th>
+                <th>Pembayaran</th>
+                <th>Subtotal</th>
+                <th>Diskon</th>
+                <th>Grand Total</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-laporan">
+              <tr><td colspan="9" class="empty-state">Pilih rentang tanggal untuk melihat laporan</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== REPORT PRODUK TERJUAL ===== -->
+    <section id="section-report-produk" class="content-section hidden">
+      <div class="section-header">
+        <h2>Report Produk Terjual</h2>
+        <p>Rekap qty dan omzet per produk berdasarkan tanggal operasional</p>
+      </div>
+      <div class="laporan-filter card">
+        <div class="filter-row-wrap">
+          <div class="filter-dates">
+            <div class="form-group-inline">
+              <label>Tgl Awal</label>
+              <input type="date" id="rp-awal" onchange="loadReportProduk()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Tgl Akhir</label>
+              <input type="date" id="rp-akhir" onchange="loadReportProduk()" />
+            </div>
+          </div>
+          <div class="laporan-stats-inline">
+            <div class="mini-stat">
+              <span class="mini-stat-label">Total Qty Terjual</span>
+              <span class="mini-stat-val" id="rp-total-qty">0</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-label">Total Omzet</span>
+              <span class="mini-stat-val omzet-bersih-color" id="rp-total-omzet">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>No</th><th>Nama Produk</th><th>Kategori</th><th>Qty Terjual</th><th>Total Omzet Produk</th></tr>
+            </thead>
+            <tbody id="tabel-report-produk">
+              <tr><td colspan="5" class="empty-state">Pilih rentang tanggal untuk melihat report</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== BELANJA & PENGELUARAN ===== -->
+    <section id="section-pengeluaran" class="content-section hidden">
+      <div class="section-header">
+        <h2>Belanja &amp; Pengeluaran</h2>
+        <p>Catat dan kelola pengeluaran usaha</p>
+      </div>
+      <div class="card pengeluaran-form-card">
+        <div class="card-header">
+          <h3 id="form-pengeluaran-title">➕ Tambah Pengeluaran</h3>
+          <button class="btn-danger-sm hidden" id="btn-batal-edit-pengeluaran" onclick="batalEditPengeluaran()">✕ Batal Edit</button>
+        </div>
+        <div class="pengeluaran-form-body">
+          <input type="hidden" id="pengeluaran-edit-id" />
+          <div class="pform-grid">
+            <div class="form-group">
+              <label>Tanggal Transaksi *</label>
+              <input type="date" id="p-tanggal" />
+            </div>
+            <div class="form-group">
+              <label>Kategori *</label>
+              <select id="p-kategori">
+                <option value="">— Pilih Kategori —</option>
+                <option value="Bahan Makanan">Bahan Makanan</option>
+                <option value="Bahan Minuman">Bahan Minuman</option>
+                <option value="Bahan Gorengan">Bahan Gorengan</option>
+                <option value="Alat & Operasional">Alat &amp; Operasional</option>
+                <option value="Asset">Asset</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Item / Nama Barang *</label>
+              <input type="text" id="p-item" placeholder="mis. Minyak Goreng, Gula" />
+            </div>
+            <div class="form-group pform-qty-wrap">
+              <label>Qty *</label>
+              <div class="pform-qty-row">
+                <input type="number" id="p-qty" placeholder="0" min="0" step="0.01" oninput="hitungTotalPengeluaran()" />
+                <select id="p-satuan">
+                  <option value="Kg">Kg</option><option value="Gram">Gram</option>
+                  <option value="Liter">Liter</option><option value="Ml">Ml</option>
+                  <option value="Pcs">Pcs</option><option value="Box">Box</option>
+                  <option value="Pack">Pack</option><option value="Botol">Botol</option>
+                  <option value="Tabung">Tabung</option><option value="Unit">Unit</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Harga Satuan (Rp) *</label>
+              <input type="number" id="p-harga-satuan" placeholder="0" min="0" oninput="hitungTotalPengeluaran()" />
+            </div>
+            <div class="form-group">
+              <label>Total Harga</label>
+              <div class="p-total-display" id="p-total-display">Rp 0</div>
+              <input type="hidden" id="p-total-harga" value="0" />
+            </div>
+            <div class="form-group pform-full">
+              <label>Keterangan (opsional)</label>
+              <input type="text" id="p-keterangan" placeholder="Catatan tambahan..." />
+            </div>
+          </div>
+          <div class="pform-actions">
+            <button class="btn-primary" onclick="simpanPengeluaran()" id="btn-simpan-pengeluaran">
+              <span id="btn-sp-text">💾 Simpan Pengeluaran</span>
+              <span id="btn-sp-spinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header pengeluaran-filter-header">
+          <div class="pengeluaran-filters">
+            <div class="form-group-inline">
+              <label>Dari</label>
+              <input type="date" id="filter-p-awal" onchange="loadPengeluaran()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Sampai</label>
+              <input type="date" id="filter-p-akhir" onchange="loadPengeluaran()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Kategori</label>
+              <select id="filter-p-kategori" onchange="loadPengeluaran()">
+                <option value="">Semua Kategori</option>
+                <option value="Bahan Makanan">Bahan Makanan</option>
+                <option value="Bahan Minuman">Bahan Minuman</option>
+                <option value="Bahan Gorengan">Bahan Gorengan</option>
+                <option value="Alat & Operasional">Alat &amp; Operasional</option>
+                <option value="Asset">Asset</option>
+              </select>
+            </div>
+          </div>
+          <div class="pengeluaran-total-filter">
+            <span class="mini-stat-label">Total Terfilter</span>
+            <span class="mini-stat-val pengeluaran-total-val" id="p-total-terfilter">Rp 0</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Tanggal</th><th>Kategori</th><th>Item</th><th>Qty</th><th>Satuan</th><th>Harga Satuan</th><th>Total Harga</th><th>Keterangan</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="tabel-pengeluaran">
+              <tr><td colspan="9" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MANAJEMEN SHIFT ===== -->
+    <section id="section-shift" class="content-section hidden">
+      <div class="section-header">
+        <h2>Manajemen Shift</h2>
+        <p>Kelola sesi operasional warung</p>
+      </div>
+
+      <!-- Panel: TIDAK ADA SHIFT -->
+      <div id="shift-panel-kosong" class="card shift-empty-panel">
+        <div class="shift-empty-icon">⏰</div>
+        <h3>Belum Ada Shift Aktif</h3>
+        <p>Buka shift baru untuk memulai operasional warung</p>
+        <button class="btn-primary" onclick="openModalBukaShift()" style="margin-top:0.5rem;">🔓 Buka Shift Baru</button>
+      </div>
+
+      <!-- Panel: SHIFT AKTIF -->
+      <div id="shift-panel-aktif" class="hidden">
+        <div class="shift-aktif-panel">
+          <div class="shift-aktif-header">
+            <div class="shift-aktif-badge">🟢 SHIFT SEDANG BERJALAN</div>
+            <button class="btn-danger" onclick="openModalTutupShift()">🔒 Tutup Shift</button>
+          </div>
+          <div class="shift-aktif-info" id="shift-aktif-info-grid"></div>
+          <div class="shift-aktif-stats">
+            <div class="sas-item">
+              <span class="sas-label">Total Transaksi</span>
+              <span class="sas-val" id="sas-trx">0</span>
+            </div>
+            <div class="sas-item">
+              <span class="sas-label">Omzet Shift</span>
+              <span class="sas-val" id="sas-omzet">Rp 0</span>
+            </div>
+            <div class="sas-item">
+              <span class="sas-label">Total Diskon</span>
+              <span class="sas-val" id="sas-diskon">Rp 0</span>
+            </div>
+            <div class="sas-item sas-pengeluaran">
+              <span class="sas-label">Pengeluaran</span>
+              <span class="sas-val" id="sas-pengeluaran">Rp 0</span>
+            </div>
+            <div class="sas-item sas-saldo">
+              <span class="sas-label">Saldo Teoritis</span>
+              <span class="sas-val" id="sas-saldo">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LAPORAN SHIFT ===== -->
+    <section id="section-laporan-shift" class="content-section hidden">
+      <div class="section-header">
+        <h2>Laporan Shift</h2>
+        <p>Riwayat sesi operasional warung</p>
+      </div>
+      <div class="laporan-filter card">
+        <div class="filter-row-wrap">
+          <div class="filter-dates">
+            <div class="form-group-inline">
+              <label>Tgl Awal</label>
+              <input type="date" id="ls-awal" onchange="loadLaporanShift()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Tgl Akhir</label>
+              <input type="date" id="ls-akhir" onchange="loadLaporanShift()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Kasir</label>
+              <input type="text" id="ls-kasir" placeholder="Filter kasir..." oninput="loadLaporanShift()" style="width:140px" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kasir</th><th>Jam Buka</th><th>Jam Tutup</th>
+                <th>Modal Awal</th><th>Omzet</th><th>Diskon</th>
+                <th>Pengeluaran</th><th>Saldo Teoritis</th>
+                <th>Kas Aktual</th><th>Selisih</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-laporan-shift">
+              <tr><td colspan="11" class="empty-state">Pilih rentang tanggal untuk melihat laporan shift</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-content -->
+</div><!-- /page-app -->
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Modal Tambah/Edit Produk -->
+<div id="modal-produk" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-produk')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-produk-title">Tambah Produk</h3>
+      <button class="modal-close" onclick="closeModal('modal-produk')">✕</button>
+    </div>
+    <form id="form-produk" class="modal-body" onsubmit="return false;">
+      <input type="hidden" id="produk-id" />
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nama Produk *</label>
+          <input type="text" id="produk-nama" placeholder="mis. Nasi Kucing Ayam" required />
+        </div>
+        <div class="form-group">
+          <label>Kategori *</label>
+          <input type="text" id="produk-kategori" placeholder="mis. Makanan, Minuman" list="kategori-list" required />
+          <datalist id="kategori-list"></datalist>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Harga (Rp) *</label>
+          <input type="number" id="produk-harga" placeholder="0" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Stok (informasi saja)</label>
+          <input type="number" id="produk-stok" placeholder="0" min="0" value="0" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Deskripsi</label>
+        <textarea id="produk-deskripsi" placeholder="Deskripsi singkat produk..." rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="produk-status">
+          <option value="aktif">Aktif</option>
+          <option value="nonaktif">Nonaktif</option>
+        </select>
+      </div>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
+      <button class="btn-primary" onclick="simpanProduk()" id="btn-simpan-produk">
+        <span id="btn-simpan-text">Simpan</span>
+        <span id="btn-simpan-spinner" class="spinner hidden"></span>
+      </button>
     </div>
   </div>
+</div>
 
-  <!-- Modal Detail Transaksi Laporan -->
-  <div id="modal-detail-trx" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-detail-trx')">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3>Detail Transaksi</h3>
-        <button class="modal-close" onclick="closeModal('modal-detail-trx')">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="detail-trx-content"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" onclick="closeModal('modal-detail-trx')">Tutup</button>
-      </div>
+<!-- Modal Hapus Produk -->
+<div id="modal-hapus" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-hapus')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Hapus Produk</h3>
+      <button class="modal-close" onclick="closeModal('modal-hapus')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Yakin ingin menghapus produk <strong id="hapus-produk-nama"></strong>? Tidak dapat dibatalkan.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-hapus')">Batal</button>
+      <button class="btn-danger" onclick="confirmHapusProduk()" id="btn-hapus-confirm">Hapus</button>
     </div>
   </div>
+</div>
 
-  <!-- Modal Konfirmasi Hapus Pengeluaran -->
-  <div id="modal-hapus-pengeluaran" class="modal-overlay hidden" onclick="closeModalIfOutside(event, 'modal-hapus-pengeluaran')">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3>Hapus Pengeluaran</h3>
-        <button class="modal-close" onclick="closeModal('modal-hapus-pengeluaran')">✕</button>
-      </div>
-      <div class="modal-body">
-        <p>Apakah Anda yakin ingin menghapus pengeluaran <strong id="hapus-pengeluaran-nama"></strong>? Tindakan ini tidak dapat dibatalkan.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-hapus-pengeluaran')">Batal</button>
-        <button class="btn-danger" onclick="confirmHapusPengeluaran()" id="btn-hapus-pengeluaran-confirm">Hapus</button>
-      </div>
+<!-- Modal Struk -->
+<div id="modal-struk" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-struk')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>✅ Transaksi Berhasil</h3>
+      <button class="modal-close" onclick="closeModal('modal-struk');resetKasir()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="struk" id="struk-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="printStruk()">🖨 Cetak</button>
+      <button class="btn-primary" onclick="closeModal('modal-struk');resetKasir()">Transaksi Baru</button>
     </div>
   </div>
+</div>
 
-  <!-- Toast Notification -->
-  <div id="toast-container" class="toast-container"></div>
+<!-- Modal Detail Transaksi -->
+<div id="modal-detail-trx" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-detail-trx')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Detail Transaksi</h3>
+      <button class="modal-close" onclick="closeModal('modal-detail-trx')">✕</button>
+    </div>
+    <div class="modal-body"><div id="detail-trx-content"></div></div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeModal('modal-detail-trx')">Tutup</button>
+    </div>
+  </div>
+</div>
 
-  <!-- Scripts -->
-  <script src="firebase-config.js"></script>
-  <script src="app.js"></script>
+<!-- Modal Hapus Pengeluaran -->
+<div id="modal-hapus-pengeluaran" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-hapus-pengeluaran')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Hapus Pengeluaran</h3>
+      <button class="modal-close" onclick="closeModal('modal-hapus-pengeluaran')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Yakin ingin menghapus pengeluaran <strong id="hapus-pengeluaran-nama"></strong>?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-hapus-pengeluaran')">Batal</button>
+      <button class="btn-danger" onclick="confirmHapusPengeluaran()" id="btn-hapus-pengeluaran-confirm">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Buka Shift -->
+<div id="modal-buka-shift" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-buka-shift')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>🔓 Buka Shift Baru</h3>
+      <button class="modal-close" onclick="closeModal('modal-buka-shift')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nama Kasir *</label>
+        <input type="text" id="buka-kasir" placeholder="Nama kasir..." />
+      </div>
+      <div class="form-group">
+        <label>Modal Awal Kas (Rp) *</label>
+        <input type="number" id="buka-modal" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <textarea id="buka-catatan" placeholder="Catatan shift..." rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-buka-shift')">Batal</button>
+      <button class="btn-primary" onclick="konfirmasiBukaShift()" id="btn-buka-shift-ok">
+        <span id="buka-shift-text">🔓 Buka Shift</span>
+        <span id="buka-shift-spin" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tutup Shift -->
+<div id="modal-tutup-shift" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-tutup-shift')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔒 Tutup Shift</h3>
+      <button class="modal-close" onclick="closeModal('modal-tutup-shift')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="shift-summary-grid" id="tutup-shift-summary"></div>
+      <div class="form-group">
+        <label>Kas Aktual (hitung fisik) *</label>
+        <input type="number" id="tutup-kas-aktual" placeholder="0" min="0" oninput="hitungSelisihTutup()" />
+      </div>
+      <div class="shift-selisih-box">
+        <div class="selisih-row">
+          <span>Saldo Teoritis</span>
+          <span id="tutup-saldo-teoritis">Rp 0</span>
+        </div>
+        <div class="selisih-row">
+          <span>Kas Aktual</span>
+          <span id="tutup-kas-display">Rp 0</span>
+        </div>
+        <div class="selisih-row selisih-main">
+          <span>Selisih</span>
+          <span id="tutup-selisih">Rp 0</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-tutup-shift')">Batal</button>
+      <button class="btn-danger" onclick="konfirmasiTutupShift()" id="btn-tutup-shift-ok">
+        <span id="tutup-shift-text">🔒 Tutup Shift</span>
+        <span id="tutup-shift-spin" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

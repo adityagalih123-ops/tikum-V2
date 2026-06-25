@@ -1794,3 +1794,285 @@ img { max-width: 100%; }
   .topbar { padding: 0 1rem; }
 }
 
+
+/* =============================================
+   SHIFT SIDEBAR BANNER
+   ============================================= */
+.shift-banner {
+  margin: 0.5rem 0.75rem;
+  background: rgba(39,174,96,0.15);
+  border: 1px solid rgba(39,174,96,0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.shift-banner-icon { font-size: 0.85rem; }
+.shift-banner-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.shift-banner-sub {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* =============================================
+   TOPBAR SHIFT PILL
+   ============================================= */
+.shift-status-pill {
+  background: rgba(39,174,96,0.12);
+  border: 1px solid rgba(39,174,96,0.4);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.shift-status-pill.closed {
+  background: rgba(192,57,43,0.1);
+  border-color: rgba(192,57,43,0.3);
+  color: var(--danger);
+}
+
+/* =============================================
+   DASHBOARD — SHIFT AKTIF WIDGET
+   ============================================= */
+.widget-shift-aktif {
+  background: linear-gradient(135deg, var(--brown-dark) 0%, #1a4a2c 100%);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+}
+.wsa-icon { font-size: 2rem; flex-shrink: 0; }
+.wsa-body { flex: 1; min-width: 160px; }
+.wsa-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 0.2rem;
+}
+.wsa-meta { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; }
+.wsa-stats { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.wsa-stat { display: flex; flex-direction: column; }
+.wsa-stat-label { font-size: 0.68rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; }
+.wsa-stat-val { font-size: 0.95rem; font-weight: 700; color: var(--gold-light); }
+.btn-shift-action {
+  background: rgba(255,255,255,0.12);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.btn-shift-action:hover { background: rgba(255,255,255,0.2); }
+.btn-shift-action.danger { border-color: rgba(255,100,80,0.4); color: #ff9090; }
+.btn-shift-action.danger:hover { background: rgba(192,57,43,0.3); }
+
+/* =============================================
+   MENU SHIFT OPERASIONAL
+   ============================================= */
+.shift-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  gap: 1rem;
+}
+.shift-empty-icon { font-size: 3.5rem; }
+.shift-empty-panel h3 { font-family: var(--font-display); font-size: 1.3rem; color: var(--brown-dark); }
+.shift-empty-panel p { color: var(--text-muted); font-size: 0.9rem; }
+
+.shift-aktif-panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+}
+.shift-aktif-header {
+  background: linear-gradient(135deg, #1a4a2c, #2d7a4f);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.shift-aktif-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7fffaa;
+  letter-spacing: 0.04em;
+}
+.shift-aktif-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.sai-item {
+  padding: 0.85rem 1.25rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.sai-item:last-child { border-right: none; }
+.sai-item span { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+.sai-item strong { font-size: 0.9rem; color: var(--text-primary); }
+
+.shift-aktif-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  padding: 0;
+}
+.sas-item {
+  padding: 1rem 1.25rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sas-item:last-child { border-right: none; }
+.sas-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+.sas-val { font-size: 1.05rem; font-weight: 700; color: var(--brown-dark); }
+.sas-saldo .sas-val { color: var(--success); }
+.sas-pengeluaran .sas-val { color: var(--danger); }
+
+/* Modal Buka/Tutup Shift summary */
+.shift-summary-grid {
+  display: grid;
+  gap: 0.5rem;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
+}
+.ssrow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.87rem;
+}
+.ssrow span:first-child { color: var(--text-muted); }
+.ssrow span:last-child  { font-weight: 600; color: var(--text-primary); }
+.ssrow.total { border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.25rem; }
+.ssrow.total span:last-child { color: var(--success); font-size: 1rem; }
+
+.shift-selisih-box {
+  background: var(--cream-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem;
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.selisih-row { display: flex; justify-content: space-between; font-size: 0.87rem; }
+.selisih-row span:first-child { color: var(--text-muted); }
+.selisih-row span:last-child  { font-weight: 600; }
+.selisih-main { border-top: 1.5px solid var(--border); padding-top: 0.5rem; margin-top: 0.15rem; }
+.selisih-main span:first-child { color: var(--text-primary); font-weight: 700; }
+.selisih-main span:last-child  { font-size: 1rem; }
+
+/* =============================================
+   REPORT PRODUK TERJUAL
+   ============================================= */
+.rp-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--cream);
+  color: var(--text-muted);
+}
+.rp-rank-badge.gold   { background: linear-gradient(135deg, #f7b731, #f9ca24); color: #fff; }
+.rp-rank-badge.silver { background: linear-gradient(135deg, #aaa, #ccc); color: #fff; }
+.rp-rank-badge.bronze { background: linear-gradient(135deg, #b87333, #cd7f32); color: #fff; }
+
+.rp-qty-badge {
+  display: inline-block;
+  background: var(--brown-warm);
+  color: var(--white);
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* =============================================
+   LAPORAN SHIFT — TABLE
+   ============================================= */
+.selisih-pos { color: var(--success); font-weight: 700; }
+.selisih-neg { color: var(--danger);  font-weight: 700; }
+
+/* =============================================
+   OPERASIONAL DATE BADGE (Topbar)
+   ============================================= */
+.op-date-badge {
+  background: linear-gradient(135deg, var(--brown-mid), var(--brown-warm));
+  color: var(--gold-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+/* =============================================
+   LAPORAN PENJUALAN — range filter
+   ============================================= */
+.filter-row-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+}
+.filter-dates { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.filter-dates .form-group-inline { align-items: center; }
+
+@media (max-width: 768px) {
+  .widget-shift-aktif { flex-direction: column; align-items: flex-start; }
+  .wsa-stats { gap: 0.75rem; }
+  .shift-aktif-info { grid-template-columns: 1fr 1fr; }
+  .shift-aktif-stats { grid-template-columns: 1fr 1fr; }
+  .filter-row-wrap { flex-direction: column; }
+  .filter-dates { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .sai-item { border-right: none; border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 480px) {
+  .shift-aktif-info  { grid-template-columns: 1fr; }
+  .shift-aktif-stats { grid-template-columns: 1fr; }
+  .sas-item { border-right: none; }
+}
