@@ -293,7 +293,9 @@ function loadProdukRealtme() {
     _setTxt('stat-produk', allProduk.filter(p => p.status === 'aktif').length);
   }, (err) => {
     console.error('Produk error:', err);
+    if (err.code !== 'permission-denied') {
     showToast('Gagal memuat produk: ' + err.message, 'error');
+}
   });
 }
 
