@@ -309,7 +309,65 @@ img { max-width: 100%; }
   top: 0;
   bottom: 0;
   z-index: 100;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* ---- Collapsed state (desktop) ---- */
+.sidebar.collapsed {
+  width: 64px;
+}
+
+.sidebar.collapsed .sidebar-brand-wrap,
+.sidebar.collapsed .shift-banner,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-item > span:last-child,
+.sidebar.collapsed .sidebar-footer .btn-logout > span:last-child,
+.sidebar.collapsed .btn-sidebar-toggle {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .btn-sidebar-toggle {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: auto !important;
+  transform: rotate(180deg);
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 1.2rem 0.5rem;
+}
+
+.sidebar.collapsed .brand-icon-sm {
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+.sidebar.collapsed .nav-icon {
+  margin: 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: 0.75rem 0.5rem;
+}
+
+.sidebar.collapsed .btn-logout {
+  justify-content: center;
+  padding: 0.7rem;
+}
+
+/* main-content saat sidebar collapsed */
+.main-content.sidebar-collapsed {
+  margin-left: 64px;
 }
 
 .sidebar-header {
@@ -318,11 +376,19 @@ img { max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 0.7rem;
+  min-height: 68px; /* tinggi konsisten agar tidak bergeser */
 }
 
 .brand-icon-sm {
   font-size: 1.8rem;
   flex-shrink: 0;
+}
+
+.sidebar-brand-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s, width 0.3s;
 }
 
 .sidebar-brand {
@@ -331,6 +397,7 @@ img { max-width: 100%; }
   color: var(--gold-light);
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .sidebar-user {
@@ -342,6 +409,21 @@ img { max-width: 100%; }
   max-width: 140px;
 }
 
+/* Tombol toggle (desktop) */
+.btn-sidebar-toggle {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6);
+  border-radius: 6px;
+  padding: 0.3rem 0.55rem;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.3s;
+  margin-left: auto;
+}
+.btn-sidebar-toggle:hover { background: rgba(255,255,255,0.15); color: var(--white); }
+
+/* Tombol close (mobile) */
 .btn-sidebar-close {
   display: none;
   background: rgba(255,255,255,0.08);
@@ -349,7 +431,6 @@ img { max-width: 100%; }
   border-radius: 6px;
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
-  margin-left: auto;
   flex-shrink: 0;
   transition: background 0.2s;
 }
@@ -359,6 +440,7 @@ img { max-width: 100%; }
   flex: 1;
   padding: 1rem 0.75rem;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-label {
@@ -370,6 +452,8 @@ img { max-width: 100%; }
   padding: 0 0.5rem;
   margin-bottom: 0.5rem;
   margin-top: 0.5rem;
+  white-space: nowrap;
+  transition: opacity 0.2s;
 }
 
 .nav-item {
@@ -383,6 +467,8 @@ img { max-width: 100%; }
   font-weight: 500;
   transition: all 0.18s;
   margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .nav-item:hover {
@@ -397,11 +483,12 @@ img { max-width: 100%; }
   box-shadow: 0 2px 12px rgba(200,134,10,0.25);
 }
 
-.nav-icon { font-size: 1.1rem; }
+.nav-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
 }
 
 .btn-logout {
@@ -416,6 +503,7 @@ img { max-width: 100%; }
   align-items: center;
   gap: 0.5rem;
   transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
 }
 .btn-logout:hover { background: rgba(192,57,43,0.25); color: #f5a49a; }
 
@@ -436,7 +524,7 @@ img { max-width: 100%; }
   display: flex;
   flex-direction: column;
   flex: 1;
-  transition: margin-left 0.3s;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Topbar */
@@ -1763,9 +1851,13 @@ img { max-width: 100%; }
     transform: translateX(0);
   }
 
+  /* Di mobile: sembunyikan toggle, tampilkan close */
+  .btn-sidebar-toggle { display: none !important; }
   .btn-sidebar-close { display: block; }
   .btn-menu { display: block; }
   .main-content { margin-left: 0; }
+  /* Batalkan collapsed di mobile */
+  .main-content.sidebar-collapsed { margin-left: 0; }
 
   .stats-grid          { grid-template-columns: 1fr 1fr; }
   .content-section     { padding: 1rem; }

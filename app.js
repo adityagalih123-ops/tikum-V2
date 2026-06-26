@@ -76,6 +76,7 @@ function opRangeMulti(awal, akhir) {
 // =============================================
 let currentUser        = null;
 let allProduk          = [];
+let unsubProduk        = null;   // untuk unsubscribe realtime listener
 let keranjang          = [];
 let metode             = 'tunai';
 let filterKat          = 'semua';
@@ -166,7 +167,12 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  try { await auth.signOut(); keranjang = []; shiftData = null; }
+  try {
+    // Hentikan realtime listener sebelum logout agar tidak trigger error permissions
+    if (unsubProduk) { unsubProduk(); unsubProduk = null; }
+    allProduk = []; keranjang = []; shiftData = null;
+    await auth.signOut();
+  }
   catch (e) { showToast('Gagal logout: ' + e.message, 'error'); }
 }
 
@@ -234,6 +240,23 @@ function navigateTo(page, linkEl) {
 
 function openSidebar()  { _el('sidebar').classList.add('open'); _el('sidebar-overlay').classList.remove('hidden'); }
 function closeSidebar() { _el('sidebar').classList.remove('open'); _el('sidebar-overlay').classList.add('hidden'); }
+function toggleSidebar() {
+  const sidebar = _el('sidebar');
+  const main    = _el('main-content');
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    main?.classList.remove('sidebar-collapsed');
+  } else {
+    sidebar.classList.add('collapsed');
+    main?.classList.add('sidebar-collapsed');
+  }
+}
+function handleMenuBtn() {
+  // Di mobile (< 769px): buka overlay sidebar
+  // Di desktop: toggle collapse
+  if (window.innerWidth <= 768) { openSidebar(); }
+  else { toggleSidebar(); }
+}
 
 // =============================================
 // TOPBAR DATE — tampilkan tanggal operasional
@@ -284,7 +307,9 @@ async function generateNoTransaksi() {
 // Stok hanya sebagai informasi, TIDAK berkurang saat transaksi
 // =============================================
 function loadProdukRealtme() {
-  db.collection('products').orderBy('nama').onSnapshot((snap) => {
+  // Batalkan listener lama jika ada
+  if (unsubProduk) { unsubProduk(); }
+  unsubProduk = db.collection('products').orderBy('nama').onSnapshot((snap) => {
     allProduk = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProdukKasir();
     renderTabelProduk();
@@ -292,6 +317,8 @@ function loadProdukRealtme() {
     updateKategoriDatalist();
     _setTxt('stat-produk', allProduk.filter(p => p.status === 'aktif').length);
   }, (err) => {
+    // Abaikan error permission saat logout (listener sudah di-unsubscribe)
+    if (err.code === 'permission-denied') return;
     console.error('Produk error:', err);
     showToast('Gagal memuat produk: ' + err.message, 'error');
   });
