@@ -98,6 +98,17 @@
         <span class="nav-icon">💸</span><span>Belanja &amp; Pengeluaran</span>
       </a>
 
+      <div class="nav-label">Konsinyasi</div>
+      <a href="#" class="nav-item" data-page="konsinyasi-masuk" onclick="navigateTo('konsinyasi-masuk',this)">
+        <span class="nav-icon">📥</span><span>Barang Masuk</span>
+      </a>
+      <a href="#" class="nav-item" data-page="konsinyasi-bayar" onclick="navigateTo('konsinyasi-bayar',this)">
+        <span class="nav-icon">💳</span><span>Pembayaran Supplier</span>
+      </a>
+      <a href="#" class="nav-item" data-page="konsinyasi-laporan" onclick="navigateTo('konsinyasi-laporan',this)">
+        <span class="nav-icon">📊</span><span>Laporan Konsinyasi</span>
+      </a>
+
       <div class="nav-label">Operasional</div>
       <a href="#" class="nav-item" data-page="shift" onclick="navigateTo('shift',this)">
         <span class="nav-icon">⏰</span><span>Manajemen Shift</span>
@@ -367,7 +378,7 @@
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr><th>#</th><th>Nama Produk</th><th>Kategori</th><th>Harga</th><th>Stok (Info)</th><th>Status</th><th>Aksi</th></tr>
+              <tr><th>#</th><th>Nama Produk</th><th>Kategori</th><th>Harga Jual</th><th>Jenis</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody id="tabel-produk">
               <tr><td colspan="7" class="empty-state">Memuat produk...</td></tr>
@@ -684,6 +695,193 @@
       </div>
     </section>
 
+    <!-- ===== BARANG MASUK KONSINYASI ===== -->
+    <section id="section-konsinyasi-masuk" class="content-section hidden">
+      <div class="section-header">
+        <h2>📥 Barang Masuk Konsinyasi</h2>
+        <p>Catat penerimaan barang titipan dari supplier</p>
+      </div>
+      <div class="card pengeluaran-form-card">
+        <div class="card-header"><h3>➕ Tambah Barang Masuk</h3></div>
+        <div class="pengeluaran-form-body">
+          <div class="pform-grid">
+            <div class="form-group">
+              <label>Tanggal *</label>
+              <input type="date" id="km-tanggal" />
+            </div>
+            <div class="form-group">
+              <label>Produk Konsinyasi *</label>
+              <select id="km-produk" onchange="onKmProdukChange()">
+                <option value="">— Pilih Produk —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Supplier</label>
+              <input type="text" id="km-supplier" placeholder="Otomatis dari produk..." readonly style="background:var(--cream)" />
+            </div>
+            <div class="form-group">
+              <label>Harga Titip (Rp)</label>
+              <input type="text" id="km-harga-titip" placeholder="Otomatis dari produk..." readonly style="background:var(--cream)" />
+            </div>
+            <div class="form-group">
+              <label>Qty Masuk *</label>
+              <input type="number" id="km-qty" placeholder="0" min="1" />
+            </div>
+            <div class="form-group pform-full">
+              <label>Catatan (opsional)</label>
+              <input type="text" id="km-catatan" placeholder="Catatan tambahan..." />
+            </div>
+          </div>
+          <div class="pform-actions">
+            <button class="btn-primary" onclick="simpanBarangMasuk()" id="btn-simpan-km">
+              <span id="btn-km-text">💾 Simpan Barang Masuk</span>
+              <span id="btn-km-spinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Riwayat Barang Masuk</h3>
+          <div class="pengeluaran-filters">
+            <div class="form-group-inline">
+              <label>Dari</label>
+              <input type="date" id="km-filter-awal" onchange="loadBarangMasuk()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Sampai</label>
+              <input type="date" id="km-filter-akhir" onchange="loadBarangMasuk()" />
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Tanggal</th><th>Produk</th><th>Supplier</th><th>Qty Masuk</th><th>Harga Titip</th><th>Catatan</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="tabel-barang-masuk">
+              <tr><td colspan="7" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PEMBAYARAN SUPPLIER ===== -->
+    <section id="section-konsinyasi-bayar" class="content-section hidden">
+      <div class="section-header">
+        <h2>💳 Pembayaran Supplier</h2>
+        <p>Rekap dan bayar hutang konsinyasi ke supplier</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Rekap Per Supplier &amp; Produk</h3>
+          <div class="pengeluaran-filters">
+            <div class="form-group-inline">
+              <label>Supplier</label>
+              <input type="text" id="pay-filter-supplier" placeholder="Filter supplier..." oninput="loadRekap()" style="width:160px" />
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabel-rekap-konsinyasi">
+            <thead>
+              <tr><th>Supplier</th><th>Produk</th><th>Qty Masuk</th><th>Qty Terjual</th><th>Qty Dibayar</th><th>Belum Dibayar</th><th>Harga Titip</th><th>Total Hutang</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="tabel-rekap-body">
+              <tr><td colspan="9" class="empty-state">Memuat data rekap...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Riwayat Pembayaran</h3></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Tanggal</th><th>Supplier</th><th>Produk</th><th>Qty Bayar</th><th>Harga Titip</th><th>Total Bayar</th><th>Catatan</th></tr>
+            </thead>
+            <tbody id="tabel-riwayat-bayar">
+              <tr><td colspan="7" class="empty-state">Belum ada riwayat pembayaran</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LAPORAN KONSINYASI ===== -->
+    <section id="section-konsinyasi-laporan" class="content-section hidden">
+      <div class="section-header">
+        <h2>📊 Laporan Konsinyasi</h2>
+        <p>Rekap lengkap stok dan hutang konsinyasi</p>
+      </div>
+      <!-- Dashboard ringkas -->
+      <div class="stats-grid" id="konsinyasi-dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon">🏭</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Supplier</div>
+            <div class="stat-value" id="kd-total-supplier">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-info">
+            <div class="stat-label">Produk Konsinyasi</div>
+            <div class="stat-value" id="kd-total-produk">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🗃️</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Stok Sisa</div>
+            <div class="stat-value" id="kd-total-stok">0</div>
+          </div>
+        </div>
+        <div class="stat-card stat-pengeluaran">
+          <div class="stat-icon">💸</div>
+          <div class="stat-info">
+            <div class="stat-label">Total Hutang Supplier</div>
+            <div class="stat-value" id="kd-total-hutang">Rp 0</div>
+          </div>
+        </div>
+      </div>
+      <div class="laporan-filter card">
+        <div class="filter-row-wrap">
+          <div class="filter-dates">
+            <div class="form-group-inline">
+              <label>Tgl Awal</label>
+              <input type="date" id="kl-awal" onchange="loadLaporanKonsinyasi()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Tgl Akhir</label>
+              <input type="date" id="kl-akhir" onchange="loadLaporanKonsinyasi()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Supplier</label>
+              <input type="text" id="kl-supplier" placeholder="Filter..." oninput="loadLaporanKonsinyasi()" style="width:140px" />
+            </div>
+            <div class="form-group-inline">
+              <label>Produk</label>
+              <input type="text" id="kl-produk" placeholder="Filter..." oninput="loadLaporanKonsinyasi()" style="width:140px" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Supplier</th><th>Produk</th><th>Qty Masuk</th><th>Terjual</th><th>Dibayar</th><th>Retur</th><th>Sisa</th><th>Harga Titip</th><th>Total Hutang</th></tr>
+            </thead>
+            <tbody id="tabel-laporan-konsinyasi">
+              <tr><td colspan="9" class="empty-state">Pilih rentang tanggal untuk melihat laporan</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </div><!-- /main-content -->
 </div><!-- /page-app -->
 
@@ -711,12 +909,27 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Harga (Rp) *</label>
+          <label>Harga Jual (Rp) *</label>
           <input type="number" id="produk-harga" placeholder="0" min="0" required />
         </div>
         <div class="form-group">
-          <label>Stok (informasi saja)</label>
-          <input type="number" id="produk-stok" placeholder="0" min="0" value="0" />
+          <label>Jenis Produk *</label>
+          <select id="produk-jenis" onchange="toggleKonsinyasiFields(this.value)">
+            <option value="reguler">Reguler</option>
+            <option value="konsinyasi">Konsinyasi</option>
+          </select>
+        </div>
+      </div>
+      <div id="konsinyasi-fields" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Supplier *</label>
+            <input type="text" id="produk-supplier" placeholder="Nama supplier..." />
+          </div>
+          <div class="form-group">
+            <label>Harga Titip (Rp) *</label>
+            <input type="number" id="produk-harga-titip" placeholder="0" min="0" />
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -875,8 +1088,84 @@
   </div>
 </div>
 
+<!-- Modal Bayar Konsinyasi -->
+<div id="modal-bayar-konsinyasi" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-bayar-konsinyasi')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>💳 Bayar Supplier</h3>
+      <button class="modal-close" onclick="closeModal('modal-bayar-konsinyasi')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bayar-stock-id" />
+      <input type="hidden" id="bayar-produk-id" />
+      <div id="bayar-info-box" class="konsinyasi-info-box"></div>
+      <div class="form-group">
+        <label>Tanggal Bayar *</label>
+        <input type="date" id="bayar-tanggal" />
+      </div>
+      <div class="form-group">
+        <label>Qty Bayar *</label>
+        <input type="number" id="bayar-qty" placeholder="0" min="1" oninput="hitungTotalBayar()" />
+        <small id="bayar-max-info" style="color:var(--text-muted)"></small>
+      </div>
+      <div class="form-group">
+        <label>Total Bayar</label>
+        <div class="p-total-display" id="bayar-total-display">Rp 0</div>
+        <input type="hidden" id="bayar-total-val" />
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <input type="text" id="bayar-catatan" placeholder="Keterangan pembayaran..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-bayar-konsinyasi')">Batal</button>
+      <button class="btn-primary" onclick="konfirmasiBayar()" id="btn-konfirmasi-bayar">
+        <span id="btn-bayar-k-text">💳 Bayar</span>
+        <span id="btn-bayar-k-spin" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Retur Konsinyasi -->
+<div id="modal-retur-konsinyasi" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-retur-konsinyasi')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>↩️ Retur Barang</h3>
+      <button class="modal-close" onclick="closeModal('modal-retur-konsinyasi')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="retur-stock-id" />
+      <input type="hidden" id="retur-produk-id" />
+      <div id="retur-info-box" class="konsinyasi-info-box"></div>
+      <div class="form-group">
+        <label>Tanggal Retur *</label>
+        <input type="date" id="retur-tanggal" />
+      </div>
+      <div class="form-group">
+        <label>Qty Retur *</label>
+        <input type="number" id="retur-qty" placeholder="0" min="1" />
+        <small id="retur-max-info" style="color:var(--text-muted)"></small>
+      </div>
+      <div class="form-group">
+        <label>Catatan (opsional)</label>
+        <input type="text" id="retur-catatan" placeholder="Alasan retur..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-retur-konsinyasi')">Batal</button>
+      <button class="btn-danger" onclick="konfirmasiRetur()" id="btn-konfirmasi-retur">
+        <span id="btn-retur-text">↩️ Retur</span>
+        <span id="btn-retur-spin" class="spinner hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container" class="toast-container"></div>
 <script src="firebase-config.js"></script>
 <script src="app.js"></script>
+<script src="konsinyasi.js"></script>
 </body>
 </html>

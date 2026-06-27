@@ -2168,3 +2168,50 @@ img { max-width: 100%; }
   .shift-aktif-stats { grid-template-columns: 1fr; }
   .sas-item { border-right: none; }
 }
+
+/* =============================================
+   MODUL KONSINYASI
+   ============================================= */
+
+/* Badge Jenis Produk */
+.badge-konsinyasi {
+  background: linear-gradient(135deg, #4a2c00, #8b5a00);
+  color: var(--gold-light);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+.badge-reguler {
+  background: var(--success-light);
+  color: var(--success);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+/* Info Box dalam Modal */
+.konsinyasi-info-box {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.kons-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.kons-info-row b { color: var(--text-primary); }
+
+/* Dashboard Konsinyasi Stats */
+#konsinyasi-dashboard-stats { margin-bottom: 1.5rem; }
+
+/* Laporan filter produk input width */
+#kl-produk, #kl-supplier { width: 140px; }
+

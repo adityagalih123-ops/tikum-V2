@@ -223,17 +223,23 @@ function navigateTo(page, linkEl) {
     laporan: 'Laporan Penjualan', 'report-produk': 'Report Produk Terjual',
     pengeluaran: 'Belanja & Pengeluaran', shift: 'Manajemen Shift',
     'laporan-shift': 'Laporan Shift',
+    'konsinyasi-masuk': 'Barang Masuk Konsinyasi',
+    'konsinyasi-bayar': 'Pembayaran Supplier',
+    'konsinyasi-laporan': 'Laporan Konsinyasi',
   };
   _setTxt('topbar-title', titles[page] || page);
 
-  if (page === 'dashboard')      loadDashboard();
-  if (page === 'kasir')          renderProdukKasir();
-  if (page === 'produk')         renderTabelProduk();
-  if (page === 'laporan')        loadLaporan();
-  if (page === 'report-produk')  loadReportProduk();
-  if (page === 'pengeluaran')    loadPengeluaran();
-  if (page === 'shift')          renderShiftPage();
-  if (page === 'laporan-shift')  loadLaporanShift();
+  if (page === 'dashboard')           loadDashboard();
+  if (page === 'kasir')               { loadKonsinyasiStokKasir().then(() => renderProdukKasir()); }
+  if (page === 'produk')              renderTabelProduk();
+  if (page === 'laporan')             loadLaporan();
+  if (page === 'report-produk')       loadReportProduk();
+  if (page === 'pengeluaran')         loadPengeluaran();
+  if (page === 'shift')               renderShiftPage();
+  if (page === 'laporan-shift')       loadLaporanShift();
+  if (page === 'konsinyasi-masuk')    { populateKmProdukSelect(); loadBarangMasuk(); }
+  if (page === 'konsinyasi-bayar')    { loadRekap(); loadRiwayatBayar(); }
+  if (page === 'konsinyasi-laporan')  { loadDashboardKonsinyasi(); loadLaporanKonsinyasi(); }
 
   closeSidebar();
 }
@@ -470,8 +476,27 @@ async function loadTopProduk(range) {
 
 // =============================================
 // KASIR
-// PENTING: tidak ada pengurangan stok
+// Produk reguler: tidak ada pengurangan stok
+// Produk konsinyasi: cek qtySisa sebelum tambah
 // =============================================
+
+// Cache stok konsinyasi untuk validasi kasir
+let konsinyasiStokCache = {}; // { produkId: qtySisa }
+
+async function loadKonsinyasiStokKasir() {
+  try {
+    const snap = await db.collection('consignment_stock').get();
+    const m = {};
+    snap.docs.forEach(d => {
+      const data = d.data();
+      const pid  = data.productId;
+      if (!m[pid]) m[pid] = 0;
+      m[pid] += (data.qtySisa || 0);
+    });
+    konsinyasiStokCache = m;
+  } catch (e) { console.warn('Gagal load stok konsinyasi:', e); }
+}
+
 function renderProdukKasir() {
   const grid = _el('kasir-produk-grid');
   if (!grid) return;
@@ -488,13 +513,20 @@ function renderProdukKasir() {
   const em = { makanan:'🍚', minuman:'🥤', camilan:'🍡', rokok:'🚬', lainnya:'🛍️' };
   grid.innerHTML = list.map(p => {
     const emoji    = em[(p.kategori||'').toLowerCase()] || '🍽️';
-    const nonaktif = p.status !== 'aktif' ? 'nonaktif' : '';
+    const isKons   = p.jenis === 'konsinyasi';
+    const qtySisa  = isKons ? (konsinyasiStokCache[p.id] || 0) : null;
+    const habis    = isKons && qtySisa <= 0;
+    const nonaktif = p.status !== 'aktif' || habis ? 'nonaktif' : '';
+    const stokInfo = isKons
+      ? `<div class="produk-card-stok" style="color:${qtySisa>0?'var(--success)':'var(--danger)'}">📦 Sisa: ${qtySisa}</div>`
+      : '';
     return `
       <div class="produk-card ${nonaktif}" onclick="addToKeranjang('${p.id}')" title="${p.nama}">
         <div class="produk-card-emoji">${emoji}</div>
         <div class="produk-card-nama">${p.nama}</div>
         <div class="produk-card-harga">${formatRp(p.harga)}</div>
-        <div class="produk-card-stok">Stok: ${p.stok ?? '∞'}</div>
+        ${stokInfo}
+        ${isKons ? '<div class="produk-card-stok" style="color:var(--text-muted);font-size:0.68rem;">Konsinyasi</div>' : ''}
       </div>`;
   }).join('');
 }
@@ -519,10 +551,19 @@ function filterProdukKasir(val) { searchQuery = val; renderProdukKasir(); }
 function addToKeranjang(produkId) {
   const p = allProduk.find(x => x.id === produkId);
   if (!p || p.status !== 'aktif') return;
-  // TIDAK ada pengecekan atau pengurangan stok
+
+  // Validasi stok konsinyasi
+  if (p.jenis === 'konsinyasi') {
+    const currentInCart = (keranjang.find(k => k.produkId === produkId)?.qty || 0);
+    const qtySisa = (konsinyasiStokCache[produkId] || 0) - currentInCart;
+    if (qtySisa <= 0) {
+      showToast(`Stok ${p.nama} habis! Tidak dapat ditambah.`, 'error'); return;
+    }
+  }
+
   const idx = keranjang.findIndex(k => k.produkId === produkId);
   if (idx >= 0) { keranjang[idx].qty++; }
-  else { keranjang.push({ produkId:p.id, namaProduk:p.nama, harga:p.harga, qty:1, kategori:p.kategori||'' }); }
+  else { keranjang.push({ produkId:p.id, namaProduk:p.nama, harga:p.harga, qty:1, kategori:p.kategori||'', jenis:p.jenis||'reguler' }); }
   renderKeranjang();
   showToast(`${p.nama} ditambahkan`, 'success');
 }
@@ -702,7 +743,9 @@ async function prosesTransaksi() {
       createdAt:  now,               // ← timestamp ASLI Firebase (untuk struk)
     });
 
-    // Detail — TIDAK ada pengurangan stok
+    // Detail — TIDAK ada pengurangan stok reguler
+    // Untuk produk konsinyasi: update qtySisa dan qtyTerjual di consignment_stock
+    const konsinyasiUpdates = [];
     keranjang.forEach(item => {
       const ref = db.collection('transaction_details').doc();
       batch.set(ref, {
@@ -712,9 +755,19 @@ async function prosesTransaksi() {
         qty: item.qty, subtotal: item.harga * item.qty,
         tanggal: opDate, createdAt: now,
       });
+      // Catat jika produk konsinyasi untuk update stok
+      const prodData = allProduk.find(p => p.id === item.produkId);
+      if (prodData && prodData.jenis === 'konsinyasi') {
+        konsinyasiUpdates.push({ produkId: item.produkId, qty: item.qty });
+      }
     });
 
     await batch.commit();
+
+    // Update consignment_stock untuk produk konsinyasi (outside batch karena perlu query dulu)
+    for (const ku of konsinyasiUpdates) {
+      await updateKonsinyasiStokTerjual(ku.produkId, ku.qty);
+    }
 
     lastStruk = {
       noTransaksi, items:[...keranjang], subtotal,
@@ -811,13 +864,19 @@ function renderTabelProduk(filter) {
     list = list.filter(p => p.nama.toLowerCase().includes(q) || (p.kategori||'').toLowerCase().includes(q));
   }
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Tidak ada produk ditemukan</td></tr>'; return; }
-  tbody.innerHTML = list.map((p, i) => `
+  tbody.innerHTML = list.map((p, i) => {
+    const isKons = p.jenis === 'konsinyasi';
+    const jenisBadge = isKons
+      ? '<span class="badge badge-konsinyasi">📦 Konsinyasi</span>'
+      : '<span class="badge badge-reguler">🏪 Reguler</span>';
+    const supplierInfo = isKons ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${p.supplier||'–'} · ${formatRp(p.hargaTitip||0)}/item</div>` : '';
+    return `
     <tr>
       <td>${i+1}</td>
-      <td style="font-weight:500">${p.nama}</td>
+      <td style="font-weight:500">${p.nama}${supplierInfo}</td>
       <td><span class="badge badge-warning">${p.kategori||'–'}</span></td>
       <td style="font-weight:600;color:var(--gold)">${formatRp(p.harga)}</td>
-      <td style="color:var(--text-muted)">${p.stok ?? 0}</td>
+      <td>${jenisBadge}</td>
       <td><span class="badge ${p.status==='aktif'?'badge-success':'badge-danger'}">${p.status==='aktif'?'Aktif':'Nonaktif'}</span></td>
       <td>
         <div class="tbl-actions">
@@ -825,7 +884,8 @@ function renderTabelProduk(filter) {
           <button class="btn-icon hapus" onclick="openModalHapus('${p.id}','${p.nama.replace(/'/g,"\\'")}')">🗑️</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function filterTabelProduk(val) { renderTabelProduk(val); }
@@ -833,8 +893,10 @@ function filterTabelProduk(val) { renderTabelProduk(val); }
 function openModalProduk() {
   editProdukId = null;
   _setTxt('modal-produk-title', 'Tambah Produk');
-  ['produk-id','produk-nama','produk-kategori','produk-harga','produk-deskripsi'].forEach(id => _setVal(id, ''));
-  _setVal('produk-stok', '0'); _setVal('produk-status', 'aktif');
+  ['produk-id','produk-nama','produk-kategori','produk-harga','produk-deskripsi','produk-supplier','produk-harga-titip'].forEach(id => _setVal(id, ''));
+  _setVal('produk-jenis', 'reguler');
+  _setVal('produk-status', 'aktif');
+  toggleKonsinyasiFields('reguler');
   openModal('modal-produk');
 }
 
@@ -845,23 +907,36 @@ function openModalEditProduk(id) {
   _setTxt('modal-produk-title', 'Edit Produk');
   _setVal('produk-id', id); _setVal('produk-nama', p.nama||'');
   _setVal('produk-kategori', p.kategori||''); _setVal('produk-harga', p.harga||'');
-  _setVal('produk-stok', p.stok ?? 0); _setVal('produk-deskripsi', p.deskripsi||'');
+  _setVal('produk-deskripsi', p.deskripsi||'');
   _setVal('produk-status', p.status||'aktif');
+  const jenis = p.jenis || 'reguler';
+  _setVal('produk-jenis', jenis);
+  _setVal('produk-supplier', p.supplier||'');
+  _setVal('produk-harga-titip', p.hargaTitip||'');
+  toggleKonsinyasiFields(jenis);
   openModal('modal-produk');
 }
 
 async function simpanProduk() {
-  const nama     = _el('produk-nama').value.trim();
-  const kategori = _el('produk-kategori').value.trim();
-  const harga    = parseInt(_el('produk-harga').value);
-  const stok     = parseInt(_el('produk-stok').value) || 0; // hanya disimpan sebagai info
+  const nama      = _el('produk-nama').value.trim();
+  const kategori  = _el('produk-kategori').value.trim();
+  const harga     = parseInt(_el('produk-harga').value);
   const deskripsi = _el('produk-deskripsi').value.trim();
-  const status   = _el('produk-status').value;
+  const status    = _el('produk-status').value;
+  const jenis     = _el('produk-jenis').value || 'reguler';
+  const supplier  = _el('produk-supplier')?.value.trim() || '';
+  const hargaTitip = parseInt(_el('produk-harga-titip')?.value) || 0;
 
   if (!nama || !kategori || isNaN(harga)) { showToast('Nama, Kategori, dan Harga wajib diisi!', 'error'); return; }
+  if (jenis === 'konsinyasi') {
+    if (!supplier) { showToast('Supplier wajib diisi untuk produk Konsinyasi!', 'error'); return; }
+    if (!hargaTitip || hargaTitip <= 0) { showToast('Harga Titip wajib diisi untuk produk Konsinyasi!', 'error'); return; }
+  }
 
   _el('btn-simpan-text').classList.add('hidden'); _el('btn-simpan-spinner').classList.remove('hidden');
-  const data = { nama, kategori, harga, stok, deskripsi, status, updatedAt: firebase.firestore.Timestamp.now() };
+  const data = { nama, kategori, harga, deskripsi, status, jenis, updatedAt: firebase.firestore.Timestamp.now() };
+  if (jenis === 'konsinyasi') { data.supplier = supplier; data.hargaTitip = hargaTitip; }
+  else { data.supplier = ''; data.hargaTitip = 0; }
   try {
     if (editProdukId) {
       await db.collection('products').doc(editProdukId).update(data);
