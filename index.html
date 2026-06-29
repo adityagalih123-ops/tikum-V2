@@ -58,7 +58,7 @@
         <div class="sidebar-user" id="sidebar-user-email">–</div>
       </div>
       <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="Sembunyikan sidebar">‹</button>
-      <button class="btn-sidebar-close" id="btn-sidebar-close" onclick="closeSidebar()">✕</button>
+      <button class="btn-sidebar-close" id="btn-sidebar-close">✕</button>
     </div>
 
     <!-- Shift Status Banner -->
@@ -120,7 +120,7 @@
     </div>
   </aside>
 
-  <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
   <!-- Main Content -->
   <div class="main-content" id="main-content">
@@ -702,7 +702,10 @@
         <p>Catat penerimaan barang titipan dari supplier</p>
       </div>
       <div class="card pengeluaran-form-card">
-        <div class="card-header"><h3>➕ Tambah Barang Masuk</h3></div>
+        <div class="card-header">
+          <h3 id="km-form-title">➕ Tambah Barang Masuk</h3>
+          <button class="btn-danger-sm hidden" id="btn-batal-edit-km" onclick="batalEditBarangMasuk()">✕ Batal Edit</button>
+        </div>
         <div class="pengeluaran-form-body">
           <div class="pform-grid">
             <div class="form-group">
@@ -757,10 +760,10 @@
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr><th>Tanggal</th><th>Produk</th><th>Supplier</th><th>Qty Masuk</th><th>Harga Titip</th><th>Catatan</th><th>Aksi</th></tr>
+              <tr><th>Tanggal</th><th>Produk</th><th>Supplier</th><th>Qty Masuk</th><th>Harga Titip</th><th>Catatan</th><th>Sisa</th><th>Aksi</th></tr>
             </thead>
             <tbody id="tabel-barang-masuk">
-              <tr><td colspan="7" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
+              <tr><td colspan="8" class="empty-state">Pilih rentang tanggal untuk melihat data</td></tr>
             </tbody>
           </table>
         </div>
@@ -1084,6 +1087,24 @@
         <span id="tutup-shift-text">🔒 Tutup Shift</span>
         <span id="tutup-shift-spin" class="spinner hidden"></span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Hapus Barang Masuk -->
+<div id="modal-hapus-barang-masuk" class="modal-overlay hidden" onclick="closeModalIfOutside(event,'modal-hapus-barang-masuk')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Hapus Barang Masuk</h3>
+      <button class="modal-close" onclick="closeModal('modal-hapus-barang-masuk')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Yakin ingin menghapus data barang masuk untuk <strong id="hapus-bm-nama"></strong>?<br/>
+      <small style="color:var(--text-muted)">Tindakan ini tidak dapat dibatalkan. Data stok akan terpengaruh.</small></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-hapus-barang-masuk')">Batal</button>
+      <button class="btn-danger" onclick="confirmHapusBarangMasuk()" id="btn-hapus-bm-confirm">Hapus</button>
     </div>
   </div>
 </div>

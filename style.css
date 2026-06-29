@@ -433,8 +433,11 @@ img { max-width: 100%; }
   font-size: 0.85rem;
   flex-shrink: 0;
   transition: background 0.2s;
+  position: relative;
+  z-index: 101; /* pastikan di atas overlay */
+  cursor: pointer;
 }
-.btn-sidebar-close:hover { background: rgba(255,255,255,0.15); }
+.btn-sidebar-close:hover { background: rgba(255,255,255,0.25); color: var(--white); }
 
 .sidebar-nav {
   flex: 1;
@@ -1849,6 +1852,7 @@ img { max-width: 100%; }
 
   .sidebar.open {
     transform: translateX(0);
+    z-index: 110; /* lebih tinggi dari overlay (99) */
   }
 
   /* Di mobile: sembunyikan toggle, tampilkan close */
@@ -2214,4 +2218,16 @@ img { max-width: 100%; }
 
 /* Laporan filter produk input width */
 #kl-produk, #kl-supplier { width: 140px; }
+
+
+/* =============================================
+   BARANG MASUK — Mode Edit Form
+   ============================================= */
+
+/* Highlight card form saat mode edit aktif */
+#btn-batal-edit-km:not(.hidden) ~ .pengeluaran-form-body,
+.pengeluaran-form-card:has(#btn-batal-edit-km:not(.hidden)) {
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-md);
+}
 

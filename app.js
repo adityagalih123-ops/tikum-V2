@@ -478,24 +478,8 @@ async function loadTopProduk(range) {
 // KASIR
 // Produk reguler: tidak ada pengurangan stok
 // Produk konsinyasi: cek qtySisa sebelum tambah
+// (konsinyasiStokCache & loadKonsinyasiStokKasir ada di konsinyasi.js)
 // =============================================
-
-// Cache stok konsinyasi untuk validasi kasir
-let konsinyasiStokCache = {}; // { produkId: qtySisa }
-
-async function loadKonsinyasiStokKasir() {
-  try {
-    const snap = await db.collection('consignment_stock').get();
-    const m = {};
-    snap.docs.forEach(d => {
-      const data = d.data();
-      const pid  = data.productId;
-      if (!m[pid]) m[pid] = 0;
-      m[pid] += (data.qtySisa || 0);
-    });
-    konsinyasiStokCache = m;
-  } catch (e) { console.warn('Gagal load stok konsinyasi:', e); }
-}
 
 function renderProdukKasir() {
   const grid = _el('kasir-produk-grid');
