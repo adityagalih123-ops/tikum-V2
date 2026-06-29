@@ -122,6 +122,17 @@ img { max-width: 100%; }
   margin-top: 0.3rem;
 }
 
+/* ===== Logo Login ===== */
+
+.login-logo {
+  width: 180px;
+  max-width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto 1rem;
+  object-fit: contain;
+}
+
 .login-form .form-group {
   margin-bottom: 1.1rem;
 }
