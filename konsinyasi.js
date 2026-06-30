@@ -599,13 +599,15 @@ function openModalBayar(produkId, namaProduk, supplier, qBelum, hargaTitip) {
     qBelum:     parseInt(qBelum)    || 0,
     hargaTitip: parseInt(hargaTitip) || 0,
   };
+  const nominalHutang = _bayarCtx.qBelum * _bayarCtx.hargaTitip;
   const ib = _el('bayar-info-box');
   if (ib) {
     ib.innerHTML = `
       <div class="kons-info-row"><span>Produk</span><b>${namaProduk}</b></div>
       <div class="kons-info-row"><span>Supplier</span><b>${supplier}</b></div>
       <div class="kons-info-row"><span>Harga Titip</span><b>${formatRp(hargaTitip)}</b></div>
-      <div class="kons-info-row"><span>Belum Dibayar</span><b style="color:var(--danger)">${qBelum} pcs</b></div>`;
+      <div class="kons-info-row"><span>Belum Dibayar</span><b style="color:var(--danger)">${qBelum} pcs</b></div>
+      <div class="kons-info-row"><span>Nominal Hutang</span><b style="color:var(--danger)">${formatRp(nominalHutang)}</b></div>`;
   }
   _setTxt('bayar-max-info', `Maksimal ${_bayarCtx.qBelum} pcs`);
   _setVal('bayar-tanggal', new Date().toISOString().split('T')[0]);
