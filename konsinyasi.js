@@ -128,13 +128,24 @@ async function loadKonsinyasiStokKasir() {
  */
 async function updateKonsinyasiStokTerjual(produkId, qty) {
   try {
+    // CATATAN FIX BUG: query sebelumnya menggabungkan where('productId','==',...)
+    // dengan orderBy('tanggalMasuk','asc') pada field berbeda — ini membutuhkan
+    // composite index di Firestore yang belum dibuat, sehingga query GAGAL
+    // (ter-catch di bawah) dan qtySisa/qtyTerjual tidak pernah ter-update.
+    // Solusi: query hanya dengan equality filter (tidak butuh index tambahan),
+    // lalu urutkan FIFO di sisi client (JavaScript).
     const snap = await db.collection('consignment_stock')
       .where('productId', '==', produkId)
-      .orderBy('tanggalMasuk', 'asc')
       .get();
 
+    const docs = snap.docs.slice().sort((a, b) => {
+      const ta = a.data().tanggalMasuk?.toMillis ? a.data().tanggalMasuk.toMillis() : 0;
+      const tb = b.data().tanggalMasuk?.toMillis ? b.data().tanggalMasuk.toMillis() : 0;
+      return ta - tb; // FIFO: batch terlama duluan
+    });
+
     let remaining = qty;
-    for (const doc of snap.docs) {
+    for (const doc of docs) {
       if (remaining <= 0) break;
       const qSisa  = doc.data().qtySisa || 0;
       if (qSisa <= 0) continue;
@@ -668,14 +679,21 @@ async function konfirmasiBayar() {
     });
 
     // Update qtyDibayar di consignment_stock secara FIFO
+    // FIX: hindari where + orderBy field berbeda (butuh composite index).
+    // Query equality saja, urutkan FIFO di client.
     const snap = await db.collection('consignment_stock')
       .where('productId', '==', _bayarCtx.produkId)
-      .orderBy('tanggalMasuk', 'asc')
       .get();
+
+    const docsBayar = snap.docs.slice().sort((a, b) => {
+      const ta = a.data().tanggalMasuk?.toMillis ? a.data().tanggalMasuk.toMillis() : 0;
+      const tb = b.data().tanggalMasuk?.toMillis ? b.data().tanggalMasuk.toMillis() : 0;
+      return ta - tb;
+    });
 
     let remaining = qty;
     const batch   = db.batch();
-    for (const doc of snap.docs) {
+    for (const doc of docsBayar) {
       if (remaining <= 0) break;
       const d          = doc.data();
       const belumBayar = (d.qtyTerjual || 0) - (d.qtyDibayar || 0);
@@ -778,14 +796,20 @@ async function konfirmasiRetur() {
     });
 
     // Kurangi qtySisa di consignment_stock secara FIFO
+    // FIX: hindari where + orderBy field berbeda (butuh composite index).
     const snap = await db.collection('consignment_stock')
       .where('productId', '==', _returCtx.produkId)
-      .orderBy('tanggalMasuk', 'asc')
       .get();
+
+    const docsRetur = snap.docs.slice().sort((a, b) => {
+      const ta = a.data().tanggalMasuk?.toMillis ? a.data().tanggalMasuk.toMillis() : 0;
+      const tb = b.data().tanggalMasuk?.toMillis ? b.data().tanggalMasuk.toMillis() : 0;
+      return ta - tb;
+    });
 
     let remaining = qtyRetur;
     const batch   = db.batch();
-    for (const doc of snap.docs) {
+    for (const doc of docsRetur) {
       if (remaining <= 0) break;
       const qSisa  = doc.data().qtySisa || 0;
       if (qSisa <= 0) continue;

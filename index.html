@@ -87,7 +87,7 @@
 
       <div class="nav-label">Laporan</div>
       <a href="#" class="nav-item" data-page="laporan" onclick="navigateTo('laporan',this)">
-        <span class="nav-icon">📋</span><span>Laporan Penjualan</span>
+        <span class="nav-icon">📋</span><span>Laporan Transaksi</span>
       </a>
       <a href="#" class="nav-item" data-page="report-produk" onclick="navigateTo('report-produk',this)">
         <span class="nav-icon">📈</span><span>Report Produk Terjual</span>
@@ -391,10 +391,10 @@
       </div>
     </section>
 
-    <!-- ===== LAPORAN PENJUALAN ===== -->
+    <!-- ===== LAPORAN TRANSAKSI ===== -->
     <section id="section-laporan" class="content-section hidden">
       <div class="section-header">
-        <h2>Laporan Penjualan</h2>
+        <h2>Laporan Transaksi</h2>
         <p>Berdasarkan tanggal operasional warung (17:00 s/d 03:00)</p>
       </div>
       <div class="laporan-filter card">
@@ -407,6 +407,15 @@
             <div class="form-group-inline">
               <label>Tgl Akhir</label>
               <input type="date" id="laporan-akhir" onchange="loadLaporan()" />
+            </div>
+            <div class="form-group-inline">
+              <label>Pembayaran</label>
+              <select id="laporan-metode" onchange="loadLaporan()">
+                <option value="semua">Semua</option>
+                <option value="tunai">💵 Tunai</option>
+                <option value="qris">📱 QRIS</option>
+                <option value="transfer">🏦 Transfer</option>
+              </select>
             </div>
           </div>
           <div class="laporan-stats-inline">
@@ -470,6 +479,14 @@
               <label>Tgl Akhir</label>
               <input type="date" id="rp-akhir" onchange="loadReportProduk()" />
             </div>
+            <div class="form-group-inline">
+              <label>Jenis Produk</label>
+              <select id="rp-jenis" onchange="loadReportProduk()">
+                <option value="semua">Semua</option>
+                <option value="reguler">🏪 Reguler</option>
+                <option value="konsinyasi">📦 Konsinyasi</option>
+              </select>
+            </div>
           </div>
           <div class="laporan-stats-inline">
             <div class="mini-stat">
@@ -487,10 +504,10 @@
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr><th>No</th><th>Nama Produk</th><th>Kategori</th><th>Qty Terjual</th><th>Total Omzet Produk</th></tr>
+              <tr><th>No</th><th>Nama Produk</th><th>Kategori</th><th>Jenis</th><th>Qty Terjual</th><th>Total Omzet Produk</th></tr>
             </thead>
             <tbody id="tabel-report-produk">
-              <tr><td colspan="5" class="empty-state">Pilih rentang tanggal untuk melihat report</td></tr>
+              <tr><td colspan="6" class="empty-state">Pilih rentang tanggal untuk melihat report</td></tr>
             </tbody>
           </table>
         </div>

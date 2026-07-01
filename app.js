@@ -1,12 +1,26 @@
 /* ================================================
-   TIKUM POS — App Logic v3.0
+   TIKUM POS — App Logic v3.1
    ================================================
    PERUBAHAN v3.0:
    1. Tanggal Operasional Warung (17:00–03:00)
-   2. Laporan Penjualan: filter Tgl Awal & Akhir
+   2. Laporan Transaksi: filter Tgl Awal & Akhir
    3. Stok produk: hanya informasi, tidak berkurang
    4. Report Produk Terjual (menu baru)
    5. Sistem Shift: Buka, Tutup, Laporan, Dashboard
+   ------------------------------------------------
+   PERBAIKAN BUG v3.1:
+   1. Rename menu "Laporan Penjualan" → "Laporan Transaksi"
+   2. Laporan Transaksi: tambah filter Metode Pembayaran
+   3. Report Produk Terjual: tambah filter Jenis Produk
+      (Reguler/Konsinyasi) + kolom Jenis
+   4. Laporan Shift: fix query loadShiftStats() &
+      checkShiftAktif() yang gagal senyap karena butuh
+      composite index Firestore yang belum ada
+   5. & 6. Konsinyasi: fix query FIFO (update stok terjual,
+      pembayaran, retur) di konsinyasi.js yang gagal senyap
+      karena alasan sama — akibatnya qtyTerjual/qtyDibayar
+      tidak pernah ter-update sehingga stok sisa & total
+      hutang supplier selalu terbaca 0
    ================================================ */
 
 'use strict';
@@ -220,7 +234,7 @@ function navigateTo(page, linkEl) {
 
   const titles = {
     dashboard: 'Dashboard', kasir: 'Kasir', produk: 'Master Produk',
-    laporan: 'Laporan Penjualan', 'report-produk': 'Report Produk Terjual',
+    laporan: 'Laporan Transaksi', 'report-produk': 'Report Produk Terjual',
     pengeluaran: 'Belanja & Pengeluaran', shift: 'Manajemen Shift',
     'laporan-shift': 'Laporan Shift',
     'konsinyasi-masuk': 'Barang Masuk Konsinyasi',
@@ -732,15 +746,16 @@ async function prosesTransaksi() {
     const konsinyasiUpdates = [];
     keranjang.forEach(item => {
       const ref = db.collection('transaction_details').doc();
+      const prodData = allProduk.find(p => p.id === item.produkId);
       batch.set(ref, {
         transactionId: trxRef.id, noTransaksi,
         produkId: item.produkId, namaProduk: item.namaProduk,
         kategori: item.kategori, harga: item.harga,
+        jenis: (prodData && prodData.jenis) || item.jenis || 'reguler',
         qty: item.qty, subtotal: item.harga * item.qty,
         tanggal: opDate, createdAt: now,
       });
       // Catat jika produk konsinyasi untuk update stok
-      const prodData = allProduk.find(p => p.id === item.produkId);
       if (prodData && prodData.jenis === 'konsinyasi') {
         konsinyasiUpdates.push({ produkId: item.produkId, qty: item.qty });
       }
@@ -963,6 +978,7 @@ function updateKategoriDatalist() {
 async function loadLaporan() {
   const awal  = _el('laporan-awal')?.value;
   const akhir = _el('laporan-akhir')?.value;
+  const filterMetode = _el('laporan-metode')?.value || 'semua';
   if (!awal || !akhir) return;
 
   // Konversi ke rentang Firestore berdasarkan tanggal operasional
@@ -977,7 +993,12 @@ async function loadLaporan() {
       .orderBy('createdAt', 'desc')
       .get();
 
-    const trxs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let trxs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Filter by metode pembayaran (bug #2)
+    if (filterMetode !== 'semua') {
+      trxs = trxs.filter(t => (t.metode || '').toLowerCase() === filterMetode.toLowerCase());
+    }
 
     const omzetKotor  = trxs.reduce((s, t) => s + (t.subtotal || t.total || 0), 0);
     const totalDiskon = trxs.reduce((s, t) => s + (t.discountAmount || 0), 0);
@@ -1078,11 +1099,12 @@ async function lihatDetailTrx(trxId, noTransaksi) {
 async function loadReportProduk() {
   const awal  = _el('rp-awal')?.value;
   const akhir = _el('rp-akhir')?.value;
+  const filterJenis = _el('rp-jenis')?.value || 'semua';
   if (!awal || !akhir) return;
 
   const range = opRangeMulti(awal, akhir);
   const tbody = _el('tabel-report-produk');
-  tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Memuat data...</td></tr>';
 
   try {
     const snap = await db.collection('transaction_details')
@@ -1094,13 +1116,24 @@ async function loadReportProduk() {
     const pMap = {};
     snap.docs.forEach(d => {
       const data = d.data();
+      // Fallback: data lama mungkin belum punya field 'jenis' di transaction_details,
+      // coba cocokkan ke master produk agar filter tetap akurat.
+      const prodMaster = allProduk.find(p => p.id === data.produkId);
+      const jenis = data.jenis || (prodMaster && prodMaster.jenis) || 'reguler';
       const key  = data.namaProduk || data.produkId;
-      if (!pMap[key]) pMap[key] = { nama:key, kategori:data.kategori||'–', qty:0, omzet:0 };
+      if (!pMap[key]) pMap[key] = { nama:key, kategori:data.kategori||'–', jenis, qty:0, omzet:0 };
       pMap[key].qty   += (data.qty || 0);
       pMap[key].omzet += (data.subtotal || 0);
     });
 
-    const list = Object.values(pMap).sort((a, b) => b.qty - a.qty);
+    let list = Object.values(pMap);
+
+    // Filter by jenis produk (bug #3)
+    if (filterJenis !== 'semua') {
+      list = list.filter(p => (p.jenis || 'reguler').toLowerCase() === filterJenis.toLowerCase());
+    }
+
+    list = list.sort((a, b) => b.qty - a.qty);
     const totalQty   = list.reduce((s, p) => s + p.qty, 0);
     const totalOmzet = list.reduce((s, p) => s + p.omzet, 0);
 
@@ -1108,22 +1141,28 @@ async function loadReportProduk() {
     _setTxt('rp-total-omzet', formatRp(totalOmzet));
 
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Tidak ada data pada rentang tanggal ini</td></tr>'; return;
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Tidak ada data pada rentang tanggal ini</td></tr>'; return;
     }
 
     const rc = ['gold','silver','bronze'];
-    tbody.innerHTML = list.map((p, i) => `
+    tbody.innerHTML = list.map((p, i) => {
+      const jenisBadge = p.jenis === 'konsinyasi'
+        ? '<span class="badge badge-konsinyasi">📦 Konsinyasi</span>'
+        : '<span class="badge badge-reguler">🏪 Reguler</span>';
+      return `
       <tr>
         <td><span class="rp-rank-badge ${rc[i]||''}">${i+1}</span></td>
         <td style="font-weight:500">${p.nama}</td>
         <td><span class="badge badge-warning">${p.kategori}</span></td>
+        <td>${jenisBadge}</td>
         <td style="text-align:center"><span class="rp-qty-badge">${p.qty}x</span></td>
         <td style="font-weight:700;color:var(--gold)">${formatRp(p.omzet)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
   } catch (e) {
     console.error('Report produk error:', e);
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Gagal memuat data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Gagal memuat data</td></tr>';
     showToast('Gagal memuat report produk: ' + e.message, 'error');
   }
 }
@@ -1303,13 +1342,21 @@ async function loadPengeluaran() {
 // =============================================
 async function checkShiftAktif() {
   try {
+    // FIX: hindari where('status','==',...) + orderBy('openTime',...) pada
+    // field berbeda (butuh composite index). Ambil semua shift 'open'
+    // (idealnya cuma 1) lalu pilih yang openTime paling baru di client.
     const snap = await db.collection('shift_sessions')
       .where('status','==','open')
-      .orderBy('openTime','desc')
-      .limit(1).get();
+      .get();
 
     if (!snap.empty) {
-      shiftData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => {
+        const ta = a.openTime?.toMillis ? a.openTime.toMillis() : 0;
+        const tb = b.openTime?.toMillis ? b.openTime.toMillis() : 0;
+        return tb - ta; // terbaru dulu
+      });
+      shiftData = docs[0];
       updateShiftBadge(true);
     } else {
       shiftData = null;
@@ -1384,12 +1431,16 @@ function renderShiftAktifInfo() {
 async function loadShiftStats() {
   if (!shiftData) return;
   const openTs = shiftData.openTime;
-  const nowTs  = firebase.firestore.Timestamp.now();
   try {
-    // Transaksi dalam shift
+    // FIX BUG #4: query sebelumnya menggabungkan 2 range filter pada 'createdAt'
+    // DENGAN equality filter pada 'shiftId' (field berbeda) — kombinasi ini
+    // membutuhkan composite index Firestore yang belum dibuat, sehingga query
+    // GAGAL (exception ter-catch di bawah) dan semua statistik shift (omzet,
+    // diskon, jumlah transaksi, saldo teoritis) gagal termuat — hanya Modal
+    // Awal yang tampil karena itu diambil langsung dari data shift, bukan query.
+    // Solusi: filter cukup dengan equality 'shiftId' saja (field itu sudah
+    // secara unik menunjuk ke sesi shift ini), tidak perlu range createdAt lagi.
     const snapT = await db.collection('transactions')
-      .where('createdAt', '>=', openTs)
-      .where('createdAt', '<=', nowTs)
       .where('shiftId', '==', shiftData.id)
       .get();
     const trxs      = snapT.docs.map(d => d.data());
@@ -1398,7 +1449,8 @@ async function loadShiftStats() {
     const omzetTunai = trxs.filter(t => t.metode==='tunai')
                            .reduce((s, t) => s + (t.grandTotal||t.total||0), 0);
 
-    // Pengeluaran dalam shift
+    // Pengeluaran dalam shift (rentang waktu sejak shift dibuka sampai sekarang)
+    const nowTs  = firebase.firestore.Timestamp.now();
     const snapE = await db.collection('expenses')
       .where('createdAt', '>=', openTs)
       .where('createdAt', '<=', nowTs).get();
