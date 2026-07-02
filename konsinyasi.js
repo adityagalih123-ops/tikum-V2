@@ -31,12 +31,25 @@ let _editBarangMasukId = null;
 /** ID record barang masuk yang akan dihapus */
 let _hapusBarangMasukId = null;
 
+/**
+ * Ambil tanggal OPERASIONAL warung (shift 17.00–03.00), bukan tanggal
+ * kalender mentah. Pakai getTodayStr()/getOperasionalDate() dari app.js
+ * kalau tersedia; fallback ke tanggal kalender biasa kalau app.js belum
+ * termuat (mis. modul ini dites berdiri sendiri).
+ * @returns {string} "YYYY-MM-DD"
+ */
+function _tglOperasionalKons() {
+  if (typeof getTodayStr === 'function') return getTodayStr();
+  console.warn('getTodayStr() tidak ditemukan — fallback ke tanggal kalender biasa.');
+  return new Date().toISOString().split('T')[0];
+}
+
 /* ============================================================
    INISIALISASI — dijalankan setelah DOM siap
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   // Set tanggal default untuk form & filter konsinyasi
-  const today        = new Date().toISOString().split('T')[0];
+  const today        = _tglOperasionalKons();
   const firstOfMonth = today.substring(0, 7) + '-01';
 
   _setVal('km-tanggal',      today);
@@ -123,47 +136,65 @@ async function loadKonsinyasiStokKasir() {
  * Kurangi qtySisa dan tambah qtyTerjual di consignment_stock
  * menggunakan metode FIFO (batch terlama habis duluan).
  * Dipanggil setelah transaksi kasir berhasil di-commit.
+ *
+ * PENTING: fungsi ini TIDAK menelan error secara diam-diam lagi.
+ * Kalau proses gagal (index, network, dsb), error dilempar ke
+ * pemanggil (lihat prosesTransaksi di app.js) supaya kasir diberi
+ * tahu dan kejadian dicatat ke koleksi `consignment_sync_issues`
+ * untuk direkonsiliasi admin — bukan cuma masuk console log yang
+ * tidak pernah dilihat siapa pun.
+ *
  * @param {string} produkId
  * @param {number} qty - jumlah yang terjual
+ * @param {Object} [meta] - info tambahan untuk jejak audit
+ * @param {string} [meta.shiftId] - ID shift kasir saat ini
+ * @param {string} [meta.opDate] - tanggal operasional (17.00–03.00)
  */
-async function updateKonsinyasiStokTerjual(produkId, qty) {
-  try {
-    // CATATAN FIX BUG: query sebelumnya menggabungkan where('productId','==',...)
-    // dengan orderBy('tanggalMasuk','asc') pada field berbeda — ini membutuhkan
-    // composite index di Firestore yang belum dibuat, sehingga query GAGAL
-    // (ter-catch di bawah) dan qtySisa/qtyTerjual tidak pernah ter-update.
-    // Solusi: query hanya dengan equality filter (tidak butuh index tambahan),
-    // lalu urutkan FIFO di sisi client (JavaScript).
-    const snap = await db.collection('consignment_stock')
-      .where('productId', '==', produkId)
-      .get();
+async function updateKonsinyasiStokTerjual(produkId, qty, meta = {}) {
+  // CATATAN FIX BUG (v2.0): query sebelumnya menggabungkan where('productId','==',...)
+  // dengan orderBy('tanggalMasuk','asc') pada field berbeda — ini membutuhkan
+  // composite index di Firestore yang belum dibuat, sehingga query GAGAL.
+  // Solusi: query hanya dengan equality filter (tidak butuh index tambahan),
+  // lalu urutkan FIFO di sisi client (JavaScript).
+  const snap = await db.collection('consignment_stock')
+    .where('productId', '==', produkId)
+    .get();
 
-    const docs = snap.docs.slice().sort((a, b) => {
-      const ta = a.data().tanggalMasuk?.toMillis ? a.data().tanggalMasuk.toMillis() : 0;
-      const tb = b.data().tanggalMasuk?.toMillis ? b.data().tanggalMasuk.toMillis() : 0;
-      return ta - tb; // FIFO: batch terlama duluan
+  const docs = snap.docs.slice().sort((a, b) => {
+    const ta = a.data().tanggalMasuk?.toMillis ? a.data().tanggalMasuk.toMillis() : 0;
+    const tb = b.data().tanggalMasuk?.toMillis ? b.data().tanggalMasuk.toMillis() : 0;
+    return ta - tb; // FIFO: batch terlama duluan
+  });
+
+  let remaining = qty;
+  const now = firebase.firestore.Timestamp.now();
+  for (const doc of docs) {
+    if (remaining <= 0) break;
+    const qSisa  = doc.data().qtySisa || 0;
+    if (qSisa <= 0) continue;
+    const deduct = Math.min(remaining, qSisa);
+    await db.collection('consignment_stock').doc(doc.id).update({
+      qtySisa:         firebase.firestore.FieldValue.increment(-deduct),
+      qtyTerjual:      firebase.firestore.FieldValue.increment(deduct),
+      updatedAt:       now,
+      lastSaleShiftId: meta.shiftId || null,
+      lastSaleOpDate:  meta.opDate  || null,
     });
-
-    let remaining = qty;
-    for (const doc of docs) {
-      if (remaining <= 0) break;
-      const qSisa  = doc.data().qtySisa || 0;
-      if (qSisa <= 0) continue;
-      const deduct = Math.min(remaining, qSisa);
-      await db.collection('consignment_stock').doc(doc.id).update({
-        qtySisa:    firebase.firestore.FieldValue.increment(-deduct),
-        qtyTerjual: firebase.firestore.FieldValue.increment(deduct),
-        updatedAt:  firebase.firestore.Timestamp.now(),
-      });
-      remaining -= deduct;
-    }
-    // Perbarui cache lokal agar kasir langsung tahu stok berubah
-    konsinyasiStokCache[produkId] = Math.max(
-      (konsinyasiStokCache[produkId] || 0) - qty, 0
-    );
-  } catch (e) {
-    console.error('updateKonsinyasiStokTerjual error:', e);
+    remaining -= deduct;
   }
+
+  // Kalau qty yang terjual melebihi total qtySisa yang tercatat di semua
+  // batch (mis. data sudah minus/terlanjur habis), sisanya TIDAK terpotong.
+  // shortfall > 0 berarti ada bagian penjualan yang tidak bisa dipetakan
+  // ke batch manapun — ini harus dilaporkan, bukan diam-diam diabaikan.
+  const shortfall = remaining;
+
+  // Perbarui cache lokal agar kasir langsung tahu stok berubah
+  konsinyasiStokCache[produkId] = Math.max(
+    (konsinyasiStokCache[produkId] || 0) - qty, 0
+  );
+
+  return { produkId, qty, shortfall };
 }
 
 /* ============================================================
@@ -212,7 +243,7 @@ function resetFormBarangMasuk() {
   if (_el('km-produk'))      _el('km-produk').value = '';
   if (_el('km-supplier'))    _setVal('km-supplier', '');
   if (_el('km-harga-titip')) _el('km-harga-titip').value = '';
-  _setVal('km-tanggal', new Date().toISOString().split('T')[0]);
+  _setVal('km-tanggal', _tglOperasionalKons());
 
   // Kembalikan judul & tombol ke mode tambah
   const formTitle = _el('km-form-title');
@@ -621,7 +652,7 @@ function openModalBayar(produkId, namaProduk, supplier, qBelum, hargaTitip) {
       <div class="kons-info-row"><span>Nominal Hutang</span><b style="color:var(--danger)">${formatRp(nominalHutang)}</b></div>`;
   }
   _setTxt('bayar-max-info', `Maksimal ${_bayarCtx.qBelum} pcs`);
-  _setVal('bayar-tanggal', new Date().toISOString().split('T')[0]);
+  _setVal('bayar-tanggal', _tglOperasionalKons());
   _setVal('bayar-qty',     '');
   _setVal('bayar-catatan', '');
   _setTxt('bayar-total-display', 'Rp 0');
@@ -748,7 +779,7 @@ async function openModalRetur(produkId, namaProduk, supplier) {
         <div class="kons-info-row"><span>Stok Sisa</span><b style="color:var(--success)">${qtySisa} pcs</b></div>`;
     }
     _setTxt('retur-max-info', `Maksimal ${qtySisa} pcs`);
-    _setVal('retur-tanggal', new Date().toISOString().split('T')[0]);
+    _setVal('retur-tanggal', _tglOperasionalKons());
     _setVal('retur-qty',     '');
     _setVal('retur-catatan', '');
     openModal('modal-retur-konsinyasi');
@@ -947,6 +978,93 @@ async function loadLaporanKonsinyasi() {
     showToast('Gagal memuat laporan konsinyasi: ' + e.message, 'error');
     console.error('loadLaporanKonsinyasi error:', e);
   }
+}
+
+/* ============================================================
+   REKONSILIASI — deteksi selisih qtyTerjual vs transaksi kasir
+   ============================================================
+   Dipanggil manual (mis. dari halaman Laporan Konsinyasi) untuk
+   memastikan tidak ada penjualan konsinyasi yang "hilang" —
+   yaitu tercatat di transaction_details tapi tidak pernah
+   ter-refleksi sebagai pengurang qtySisa/qtyTerjual di
+   consignment_stock (skenario yang sebelumnya pernah terjadi
+   akibat update stok gagal senyap setelah transaksi commit).
+   ============================================================ */
+
+/**
+ * Bandingkan total qty konsinyasi yang tercatat laku di kasir
+ * (transaction_details, jenis='konsinyasi') dengan total qtyTerjual
+ * yang tersimpan di consignment_stock, per produk.
+ * @returns {Promise<Array<{produkId, namaProduk, terjualKasir, terjualKonsinyasi, selisih}>>}
+ *          Hanya baris dengan selisih != 0 yang dikembalikan.
+ */
+async function cekSelisihKonsinyasi() {
+  try {
+    // 1) Total qty terjual per produk konsinyasi menurut kasir (sumber kebenaran penjualan)
+    const trxSnap = await db.collection('transaction_details')
+      .where('jenis', '==', 'konsinyasi')
+      .get();
+    const terjualKasir = {};
+    const namaMap = {};
+    trxSnap.docs.forEach(d => {
+      const r = d.data();
+      terjualKasir[r.produkId] = (terjualKasir[r.produkId] || 0) + (r.qty || 0);
+      namaMap[r.produkId] = r.namaProduk || namaMap[r.produkId] || r.produkId;
+    });
+
+    // 2) Total qtyTerjual per produk menurut ledger consignment_stock
+    const stokSnap = await db.collection('consignment_stock').get();
+    const terjualKons = {};
+    stokSnap.docs.forEach(d => {
+      const r = d.data();
+      terjualKons[r.productId] = (terjualKons[r.productId] || 0) + (r.qtyTerjual || 0);
+      namaMap[r.productId] = namaMap[r.productId] || r.namaProduk || r.productId;
+    });
+
+    // 3) Gabungkan & cari selisih
+    const semuaId = new Set([...Object.keys(terjualKasir), ...Object.keys(terjualKons)]);
+    const hasil = [];
+    semuaId.forEach(pid => {
+      const tk = terjualKasir[pid] || 0;
+      const tj = terjualKons[pid]  || 0;
+      if (tk !== tj) {
+        hasil.push({
+          produkId: pid,
+          namaProduk: namaMap[pid] || pid,
+          terjualKasir: tk,
+          terjualKonsinyasi: tj,
+          selisih: tk - tj, // positif = ada penjualan yang belum ter-refleksi di stok konsinyasi
+        });
+      }
+    });
+
+    if (hasil.length) {
+      console.warn('⚠️ Selisih stok konsinyasi ditemukan:', hasil);
+    }
+    return hasil;
+  } catch (e) {
+    console.error('cekSelisihKonsinyasi error:', e);
+    showToast('Gagal cek selisih stok konsinyasi: ' + e.message, 'error');
+    return [];
+  }
+}
+
+/**
+ * Jalankan cekSelisihKonsinyasi() dan tampilkan ringkasan via toast.
+ * Aman dipanggil dari tombol UI mana pun (mis. di halaman Laporan Konsinyasi).
+ */
+async function tampilkanSelisihKonsinyasi() {
+  showToast('Mengecek selisih stok konsinyasi...', 'info');
+  const hasil = await cekSelisihKonsinyasi();
+  if (!hasil.length) {
+    showToast('✅ Tidak ada selisih. Data konsinyasi konsisten.', 'success');
+    return;
+  }
+  const totalSelisih = hasil.reduce((s, r) => s + r.selisih, 0);
+  showToast(
+    `⚠️ Ditemukan selisih pada ${hasil.length} produk (total ${totalSelisih} pcs belum ter-refleksi). Lihat console untuk detail.`,
+    'error'
+  );
 }
 
 /* ============================================================

@@ -253,7 +253,13 @@ function navigateTo(page, linkEl) {
   if (page === 'laporan-shift')       loadLaporanShift();
   if (page === 'konsinyasi-masuk')    { populateKmProdukSelect(); loadBarangMasuk(); }
   if (page === 'konsinyasi-bayar')    { loadRekap(); loadRiwayatBayar(); }
-  if (page === 'konsinyasi-laporan')  { loadDashboardKonsinyasi(); loadLaporanKonsinyasi(); }
+  if (page === 'konsinyasi-laporan')  {
+    loadDashboardKonsinyasi(); loadLaporanKonsinyasi();
+    // Cek otomatis selisih stok konsinyasi setiap kali laporan dibuka —
+    // supaya kalau ada update yang gagal (lihat consignment_sync_issues),
+    // admin langsung sadar tanpa harus buka console manual.
+    if (typeof tampilkanSelisihKonsinyasi === 'function') tampilkanSelisihKonsinyasi();
+  }
 
   closeSidebar();
 }
@@ -763,9 +769,54 @@ async function prosesTransaksi() {
 
     await batch.commit();
 
-    // Update consignment_stock untuk produk konsinyasi (outside batch karena perlu query dulu)
+    // Update consignment_stock untuk produk konsinyasi (outside batch karena perlu query dulu).
+    // PENTING: transaksi di atas SUDAH tersimpan sukses pada titik ini. Kalau update stok
+    // konsinyasi di bawah gagal, penjualan tetap valid — tapi kita WAJIB memberi tahu kasir
+    // dan mencatat kegagalannya (bukan menelannya diam-diam seperti sebelumnya), supaya
+    // admin bisa rekonsiliasi lewat cekSelisihKonsinyasi().
+    const gagalUpdate = [];
     for (const ku of konsinyasiUpdates) {
-      await updateKonsinyasiStokTerjual(ku.produkId, ku.qty);
+      try {
+        const hasil = await updateKonsinyasiStokTerjual(ku.produkId, ku.qty, {
+          shiftId: shiftData?.id || null,
+          opDate:  opDate,
+        });
+        if (hasil.shortfall > 0) {
+          // qty terjual melebihi total qtySisa yang tercatat di semua batch masuk
+          gagalUpdate.push({ ...ku, alasan: `Shortfall ${hasil.shortfall} pcs (stok batch tidak cukup)` });
+        }
+      } catch (e) {
+        console.error('Gagal update stok konsinyasi:', ku, e);
+        gagalUpdate.push({ ...ku, alasan: e.message });
+      }
+    }
+
+    if (gagalUpdate.length) {
+      // Catat ke Firestore supaya tidak hilang — admin bisa cek & perbaiki manual
+      try {
+        const batchLog = db.batch();
+        gagalUpdate.forEach(g => {
+          const ref = db.collection('consignment_sync_issues').doc();
+          batchLog.set(ref, {
+            transactionId: trxRef.id,
+            noTransaksi,
+            produkId:  g.produkId,
+            qty:       g.qty,
+            alasan:    g.alasan,
+            shiftId:   shiftData?.id || null,
+            opDate,
+            status:    'belum_diperiksa',
+            createdAt: firebase.firestore.Timestamp.now(),
+          });
+        });
+        await batchLog.commit();
+      } catch (logErr) {
+        console.error('Gagal mencatat consignment_sync_issues:', logErr);
+      }
+      showToast(
+        `⚠️ Transaksi tersimpan, tapi ${gagalUpdate.length} update stok konsinyasi gagal. Sudah dicatat untuk admin.`,
+        'error'
+      );
     }
 
     lastStruk = {
