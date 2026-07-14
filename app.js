@@ -158,6 +158,16 @@ function _setVal(id, v) { const el = document.getElementById(id); if (el) el.val
 function _setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 function _el(id)        { return document.getElementById(id); }
 
+/**
+ * Escape string untuk digunakan aman dalam atribut HTML onclick yang
+ * dibungkus tanda kutip ganda dan berisi argumen string kutip tunggal,
+ * mis. onclick="fn('${escStr(nama)}')". Dipakai bersama oleh app.js
+ * dan konsinyasi.js.
+ */
+function escStr(s) {
+  return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 // =============================================
 // AUTH
 // =============================================
@@ -540,7 +550,7 @@ function updateKategoriTabs() {
   if (!c) return;
   const set = new Set(allProduk.map(p => p.kategori).filter(Boolean));
   c.innerHTML = `<button class="tab-btn ${filterKat==='semua'?'active':''}" onclick="filterKategori('semua',this)">Semua</button>`;
-  set.forEach(k => { c.innerHTML += `<button class="tab-btn ${filterKat===k?'active':''}" onclick="filterKategori('${k}',this)">${k}</button>`; });
+  set.forEach(k => { c.innerHTML += `<button class="tab-btn ${filterKat===k?'active':''}" onclick="filterKategori('${escStr(k)}',this)">${k}</button>`; });
 }
 
 function filterKategori(kat, btn) {
@@ -662,6 +672,8 @@ function selectPayment(m, btn) {
   if (btn) btn.classList.add('active');
   const ts = _el('tunai-section');
   if (ts) ts.style.display = m === 'tunai' ? 'flex' : 'none';
+  const qs = _el('qris-section');
+  if (qs) qs.classList.toggle('hidden', m !== 'qris');
 }
 
 function hitungKembalian() {
@@ -876,16 +888,60 @@ function showStruk(data) {
 
 function printStruk() {
   const content = _el('struk-content').innerHTML;
-  const win = window.open('', '_blank', 'width=400,height=600');
-  win.document.write(`<html><head><title>Struk</title>
-    <style>body{font-family:'Courier New',monospace;font-size:12px;padding:16px;}
+  const printCss = `<style>
+    body{font-family:'Courier New',monospace;font-size:12px;padding:16px;margin:0;}
     .struk-row{display:flex;justify-content:space-between;margin:3px 0;}
     .struk-divider{border:none;border-top:1px dashed #ccc;margin:6px 0;}
     .struk-header,.struk-footer{text-align:center;}
     .struk-title{font-size:16px;font-weight:bold;}
-    .bold{font-weight:bold;}.big{font-size:14px;font-weight:bold;}</style></head>
-    <body>${content}</body></html>`);
-  win.document.close(); win.print();
+    .bold{font-weight:bold;}.big{font-size:14px;font-weight:bold;}</style>`;
+
+  // BUG FIX: sebelumnya window.open() dipakai tanpa cek hasilnya. Di banyak
+  // browser mobile (popup blocker aktif, mode PWA/"Add to Home Screen", atau
+  // in-app browser seperti WhatsApp/Instagram), window.open() mengembalikan
+  // null alih-alih jendela baru — baris berikutnya (win.document.write) akan
+  // langsung crash dengan "Cannot read properties of null". Ini membuat
+  // tombol Print Struk mati total di HP tanpa pesan error apa pun ke kasir.
+  // Solusi: cek hasil window.open dulu; kalau gagal/null, fallback ke iframe
+  // tersembunyi yang tidak butuh popup sama sekali.
+  let win = null;
+  try { win = window.open('', '_blank', 'width=400,height=600'); } catch (e) { win = null; }
+
+  if (win && !win.closed) {
+    win.document.write(`<html><head><title>Struk</title>${printCss}</head><body>${content}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    return;
+  }
+
+  // Fallback mobile-safe: cetak lewat iframe tersembunyi (tidak melalui popup,
+  // jadi tidak bisa diblokir browser).
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+  const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+
+  try {
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<html><head><title>Struk</title>${printCss}</head><body>${content}</body></html>`);
+    doc.close();
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print iframe error:', e);
+        showToast('Print gagal di perangkat ini. Struk tetap tersimpan.', 'error');
+      }
+      setTimeout(cleanup, 1000);
+    };
+  } catch (e) {
+    console.error('printStruk fallback error:', e);
+    showToast('Print gagal di perangkat ini. Struk tetap tersimpan.', 'error');
+    cleanup();
+  }
 }
 
 function resetKasir() {
@@ -931,7 +987,7 @@ function renderTabelProduk(filter) {
       <td>
         <div class="tbl-actions">
           <button class="btn-icon edit" onclick="openModalEditProduk('${p.id}')" title="Edit">✏️</button>
-          <button class="btn-icon hapus" onclick="openModalHapus('${p.id}','${p.nama.replace(/'/g,"\\'")}')">🗑️</button>
+          <button class="btn-icon hapus" onclick="openModalHapus('${p.id}','${escStr(p.nama)}')">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -1357,7 +1413,7 @@ async function loadPengeluaran() {
     const katC = { 'Bahan Makanan':'#e67e22','Bahan Minuman':'#2980b9','Bahan Gorengan':'#8e44ad','Alat & Operasional':'#16a085','Asset':'#c0392b' };
     tbody.innerHTML = list.map(e => {
       const c = katC[e.category] || '#7f8c8d';
-      const safe = (e.item||'').replace(/'/g,"\\'");
+      const safe = escStr(e.item||'');
       return `
         <tr data-pengeluaran-id="${e.id}">
           <td style="white-space:nowrap">${e.transactionDate||'–'}</td>

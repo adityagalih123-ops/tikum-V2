@@ -1134,6 +1134,33 @@ img { max-width: 100%; }
   color: var(--success);
 }
 
+.qris-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: var(--cream);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.qris-image {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.qris-caption {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0;
+}
+
 .btn-bayar {
   background: linear-gradient(135deg, var(--brown-dark), var(--gold));
   color: var(--white);
@@ -1905,6 +1932,18 @@ img { max-width: 100%; }
   .pengeluaran-filters      { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
   .pengeluaran-total-filter { align-items: flex-start; }
   .dashboard-right-col      { display: flex; flex-direction: column; gap: 1rem; }
+
+  /* FIX MOBILE: target sentuh tombol icon (edit/hapus) sebelumnya ~24px —
+     terlalu kecil untuk jari, gampang salah tap di tabel yang padat.
+     Diperbesar mendekati standar minimum 44px untuk perangkat sentuh. */
+  .btn-icon { padding: 0.6rem 0.7rem; font-size: 1.05rem; }
+
+  /* FIX MOBILE: cegah tombol modal-footer terpotong/overflow di layar
+     sempit (<360px) kalau ada 2-3 tombol dengan label panjang. */
+  .modal-footer { flex-wrap: wrap; justify-content: flex-end; }
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary,
+  .modal-footer .btn-danger { flex: 1 1 auto; min-width: 120px; }
 }
 
 @media (max-width: 480px) {
